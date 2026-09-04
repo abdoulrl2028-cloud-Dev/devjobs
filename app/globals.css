@@ -825,24 +825,6 @@ html[data-theme="dark"] .icon-moon {
   border-color: var(--primary);
 }
 
-.demo-hint {
-  margin-top: 18px;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  border: 1px dashed var(--border);
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-
-.demo-hint code {
-  background: var(--bg);
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-family: var(--font-geist-mono), monospace;
-}
-
 .login-foot {
   margin-top: 16px;
   font-size: 0.85rem;

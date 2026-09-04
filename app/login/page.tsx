@@ -81,15 +81,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="demo-hint">
-          <p>
-            <strong>Conta demo:</strong> admin@devjobs.com · senha <code>admin123</code>
-          </p>
-          <p>
-            ou <strong>demo@devjobs.com</strong> · senha <code>demo123</code>
-          </p>
-        </div>
-
         <p className="login-foot">
           Voltar para a{" "}
           <Link href="/" className="link">
