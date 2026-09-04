@@ -1,15 +1,23 @@
-import { NextResponse } from "next/server";
-import { getJobById } from "@/lib/jobs";
+import { NextRequest, NextResponse } from "next/server";
+import { getJobById } from "@/lib/db/jobs";
+import { ensureDatabaseReady } from "@/lib/db/init";
 
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: Promise<{ id: string }> };
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const id = (await params).id;
+  if (!id) {
+    return NextResponse.json({ error: "Id da vaga é obrigatório" }, { status: 400 });
+  }
 
-export async function GET(_req: Request, ctx: Ctx) {
-  const { id } = await ctx.params;
-  const job = getJobById(id);
+  await ensureDatabaseReady();
+  const job = await getJobById(id);
   if (!job) {
     return NextResponse.json({ error: "Vaga não encontrada" }, { status: 404 });
   }
-  return NextResponse.json({ data: job });
+
+  // O detalhe é registrado na página (server component), a API só devolve os dados.
+  const response = NextResponse.json({ data: job });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

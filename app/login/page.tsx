@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/app-context";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const { user, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +45,14 @@ export default function LoginPage() {
     const result = await login(email, password);
     setSubmitting(false);
     if (result.ok) {
-      router.push("/");
+      const me = await fetch("/api/auth/me", { cache: "no-store" }).then((r) => r.json());
+      const role = me.data?.user?.role;
+      const next = searchParams.get("next");
+      if (next && next.startsWith("/")) {
+        router.push(next);
+      } else {
+        router.push(role === "company" ? "/dashboard" : role === "admin" ? "/admin" : "/");
+      }
       router.refresh();
     } else {
       setError(result.error ?? "Não foi possível entrar.");
@@ -82,7 +98,11 @@ export default function LoginPage() {
         </form>
 
         <p className="login-foot">
-          Voltar para a{" "}
+          Ainda não tem conta?{" "}
+          <Link href="/cadastro" className="link">
+            Crie sua conta gratuita
+          </Link>{" "}
+          · Voltar para a{" "}
           <Link href="/" className="link">
             página de vagas
           </Link>

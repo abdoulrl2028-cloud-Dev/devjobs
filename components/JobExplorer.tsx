@@ -13,6 +13,7 @@ type Query = {
 
 export default function JobExplorer() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [sponsored, setSponsored] = useState<Job[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,19 @@ export default function JobExplorer() {
       .then((res) => res.json())
       .then((json) => {
         if (!cancelled) setLocations(json.data ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/jobs/sponsored", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled) setSponsored(json.data ?? []);
       })
       .catch(() => undefined);
     return () => {
@@ -159,6 +173,20 @@ export default function JobExplorer() {
 
       <section aria-live="polite">
         {error && <div className="alert">{error}</div>}
+
+        {sponsored.length > 0 && (
+          <div className="sponsored-strip" aria-label="Vagas patrocinadas">
+            <div className="sponsored-strip__header">
+              <span className="sponsored-strip__label">Patrocinadas</span>
+              <span className="sponsored-strip__hint">Vagas em destaque pago por empresas</span>
+            </div>
+            <div className="job-grid job-grid--sponsored">
+              {sponsored.slice(0, 4).map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="results-meta">Carregando vagas…</div>

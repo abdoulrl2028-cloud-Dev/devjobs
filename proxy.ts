@@ -6,18 +6,19 @@ export const config = {
   matcher: ["/api/:path*"],
 };
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Regras por sensibilidade:
-  // - Login: proteção contra brute-force (5 tentativas/minuto por IP).
+  // - Login/cadastro: proteção contra brute-force (5/min por IP).
   // - Demais rotas de auth: 30/min.
   // - API geral: proteção anti scraping (120/min).
-  const rule = path.startsWith("/api/auth/login")
-    ? { limit: 5, windowSeconds: 60 }
-    : path.startsWith("/api/auth/")
-      ? { limit: 30, windowSeconds: 60 }
-      : { limit: 120, windowSeconds: 60 };
+  const rule =
+    path.startsWith("/api/auth/login") || path.startsWith("/api/register")
+      ? { limit: 5, windowSeconds: 60 }
+      : path.startsWith("/api/auth/")
+        ? { limit: 30, windowSeconds: 60 }
+        : { limit: 120, windowSeconds: 60 };
 
   const blocked = checkRateLimit(request, rule);
   if (blocked) return blocked;

@@ -1,12 +1,43 @@
-"use client";
-
-import { useEffect, use, useState } from "react";
 import Link from "next/link";
-import { getJobById, type Job } from "@/lib/jobs";
+import { notFound } from "next/navigation";
+import { getJobById, recordJobView } from "@/lib/db/jobs";
+import { ensureDatabaseReady } from "@/lib/db/init";
 import { formatPostedAt, formatSalary, initials, jobTypeLabels } from "@/lib/format";
 import FavoriteButton from "@/components/FavoriteButton";
+import ApplyButton from "@/components/ApplyButton";
+import type { Job } from "@/lib/types";
 
-function JobDetailInner({ job }: { job: Job }) {
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const id = (await params).id;
+  return { title: id };
+}
+
+function DetailBadges({ job }: { job: Job }) {
+  return (
+    <div className="detail-badges">
+      <span className="badge">{jobTypeLabels[job.type]}</span>
+      {job.sponsored && <span className="badge badge--sponsored">Patrocinado</span>}
+      {job.featured && <span className="badge badge--featured">Destaque</span>}
+      {job.remote && <span className="badge badge--remote">Remoto</span>}
+    </div>
+  );
+}
+
+export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  await ensureDatabaseReady();
+  const job = await getJobById(id);
+
+  if (!job || job.status !== "active") {
+    notFound();
+  }
+
+  // Registrar a visualização desta vaga (métricas para a empresa).
+  recordJobView(id).catch(() => undefined);
+
   return (
     <div className="container detail-wrap">
       <Link href="/" className="back-link">
@@ -29,20 +60,11 @@ function JobDetailInner({ job }: { job: Job }) {
                 job.company
               )}
             </p>
-            <div className="detail-badges">
-              <span className="badge">{jobTypeLabels[job.type]}</span>
-              {job.featured && <span className="badge badge--featured">Destaque</span>}
-              {job.remote && <span className="badge badge--remote">Remoto</span>}
-            </div>
+            <DetailBadges job={job} />
           </div>
           <div className="detail-actions">
             <FavoriteButton jobId={job.id} />
-            <a
-              href={`mailto:vagas@${job.company.toLowerCase().replace(/[^a-z0-9]/g, "")}.com?subject=Candidatura para ${encodeURIComponent(job.title)}`}
-              className="btn btn--primary"
-            >
-              Candidatar-se
-            </a>
+            <ApplyButton jobId={job.id} />
           </div>
         </header>
 
@@ -53,32 +75,38 @@ function JobDetailInner({ job }: { job: Job }) {
               <p>{job.description}</p>
             </section>
 
-            <section>
-              <h2>Responsabilidades</h2>
-              <ul>
-                {job.responsibilities.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </section>
+            {job.responsibilities.length > 0 && (
+              <section>
+                <h2>Responsabilidades</h2>
+                <ul>
+                  {job.responsibilities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-            <section>
-              <h2>Requisitos</h2>
-              <ul>
-                {job.requirements.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </section>
+            {job.requirements.length > 0 && (
+              <section>
+                <h2>Requisitos</h2>
+                <ul>
+                  {job.requirements.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-            <section>
-              <h2>Benefícios</h2>
-              <ul>
-                {job.benefits.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </section>
+            {job.benefits.length > 0 && (
+              <section>
+                <h2>Benefícios</h2>
+                <ul>
+                  {job.benefits.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           <aside className="detail-side">
@@ -93,6 +121,12 @@ function JobDetailInner({ job }: { job: Job }) {
                 <dd>{job.remote ? "Remoto" : "Presencial"}</dd>
                 <dt>Publicada</dt>
                 <dd>{formatPostedAt(job.postedAt)}</dd>
+                {job.quantity > 1 && (
+                  <>
+                    <dt>Vagas disponíveis</dt>
+                    <dd>{job.quantity}</dd>
+                  </>
+                )}
               </dl>
             </div>
             <div className="side-card">
@@ -110,44 +144,4 @@ function JobDetailInner({ job }: { job: Job }) {
       </article>
     </div>
   );
-}
-
-export default function JobDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const [job, setJob] = useState<Job | null>(null);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    const found = getJobById(id);
-    if (found) setJob(found);
-    else setNotFound(true);
-  }, [id]);
-
-  if (notFound) {
-    return (
-      <div className="container">
-        <div className="empty">
-          <p className="empty__title">Vaga não encontrada</p>
-          <p>A vaga que você procura não existe ou foi removida.</p>
-          <Link href="/" className="btn btn--primary">
-            Ver todas as vagas
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!job) {
-    return (
-      <div className="container">
-        <div className="results-meta">Carregando vaga…</div>
-      </div>
-    );
-  }
-
-  return <JobDetailInner job={job} />;
 }

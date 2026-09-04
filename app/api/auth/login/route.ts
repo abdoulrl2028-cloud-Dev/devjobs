@@ -6,13 +6,13 @@ import {
   isSameOrigin,
   hasValidCredentialsShape,
 } from "@/lib/auth";
+import { ensureDatabaseReady } from "@/lib/db/init";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 2048;
 
 export async function POST(request: NextRequest) {
-  // Proteção CSRF: recusa requisições vindas de outras origens.
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Origem não permitida" }, { status: 403 });
   }
@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "E-mail ou senha inválidos" }, { status: 400 });
   }
 
-  const user = verifyCredentials(email as string, password as string);
+  await ensureDatabaseReady();
+  const user = await verifyCredentials(email as string, password as string);
 
   // Atraso constante para dificultar brute-force e enumeração de usuários.
   await new Promise((resolve) => setTimeout(resolve, 250));
