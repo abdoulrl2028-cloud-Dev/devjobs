@@ -5,12 +5,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(sessionCookie.name)?.value;
-  if (!token) {
-    return NextResponse.json({ data: { user: null } });
-  }
-  const user = verifySessionToken(token);
-  if (!user) {
-    return NextResponse.json({ data: { user: null } });
-  }
-  return NextResponse.json({ data: { user } });
+  const user = token ? verifySessionToken(token) : null;
+  const response = NextResponse.json({ data: { user } });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

@@ -49,3 +49,12 @@ Acesse http://localhost:3000.
 O projeto está publicado na Vercel. `npm run build` faz o build de produção.
 
 > A autenticação usa um segredo para assinar a sessão. Configure a variável de ambiente `AUTH_SECRET` em produção.
+
+## Segurança
+
+- **Headers** de segurança em todas as respostas: CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `HSTS` e `Permissions-Policy`.
+- **Rate limiting** por IP na API (Vercel + fallback em memória): `POST /api/auth/login` (5/min, anti brute-force), demais rotas `auth` (30/min) e API geral (120/min, anti scraping).
+- **Senhas** com hash `scrypt` + comparação em tempo constante (`timingSafeEqual`) para evitar timing attacks.
+- **CSRF**: verificações de `Origin`/`Referer` em `login` e `logout`.
+- **Validação de entrada**: formato de e-mail, tamanho de senha, limite de corpo de requisição e parâmetros de consulta com lista de valores permitidos.
+- **Cookies de sessão** `httpOnly` + `SameSite=Lax` + `Secure` em produção; atraso constante no login para dificultar brute-force.
