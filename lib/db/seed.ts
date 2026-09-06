@@ -4,6 +4,25 @@ import { createJob } from "./jobs";
 import { upsertProfile } from "./candidates";
 import { addApplication } from "./activity";
 import { jobs as catalogJobs } from "./jobs-data";
+import { queryAll, execute } from "./conn";
+import { newId } from "../crypto";
+
+// Cupons promocionais (idempotente, roda antes do seed principal).
+async function seedCoupons(): Promise<void> {
+  const existing = await queryAll("SELECT COUNT(*) AS total FROM coupons");
+  if (Number(existing[0]?.total ?? 0) > 0) return;
+  const now = new Date().toISOString();
+  const promo = [
+    { code: "LANCAMENTO", percent: 20 },
+    { code: "BEMVINDO", percent: 15 },
+  ];
+  for (const c of promo) {
+    await execute(
+      "INSERT INTO coupons (id, code, percent, active, max_uses, used_count, created_at) VALUES (?, ?, ?, 1, 0, 0, ?)",
+      [newId("cop"), c.code, c.percent, now]
+    );
+  }
+}
 
 async function seedCandidateUser(
   email: string,
@@ -16,6 +35,8 @@ async function seedCandidateUser(
 }
 
 export async function seedDatabase(): Promise<void> {
+  await seedCoupons();
+
   // Idempotente: se já existir o admin, nada é re-executado.
   if (await getUserByEmail("admin@devjobs.com")) return;
 

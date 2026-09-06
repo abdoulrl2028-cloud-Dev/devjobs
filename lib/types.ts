@@ -114,6 +114,7 @@ export type Payment = {
   currency: string;
   status: "pending" | "paid" | "failed" | "refunded";
   stripePaymentId: string | null;
+  couponCode: string | null;
   createdAt: string;
 };
 

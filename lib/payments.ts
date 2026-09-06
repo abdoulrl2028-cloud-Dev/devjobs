@@ -7,6 +7,7 @@ import {
   setPaymentStatus,
 } from "./db/company";
 import { setJobStatus, updateJob } from "./db/jobs";
+import { discountedPrice } from "./db/coupons";
 
 let stripeClient: Stripe | null = null;
 
@@ -45,18 +46,25 @@ export async function createCheckoutSession(data: {
   jobId: string;
   plan: Plan;
   origin: string;
+  couponCode?: string | null;
+  couponPercent?: number;
 }): Promise<CheckoutResult> {
-  const amount = planPrice(data.plan);
+  const base = planPrice(data.plan);
+  const amount =
+    data.couponCode && data.couponPercent
+      ? discountedPrice(base, data.couponPercent)
+      : base;
   const successUrl = `${data.origin}/pagamento/sucesso`;
   const cancelUrl = `${data.origin}/pagamento/cancelado`;
 
   if (mockPaymentsEnabled()) {
-    return {
+    const checkout: CheckoutResult = {
       mode: "mock",
       checkoutUrl: null,
       plan: data.plan,
       amount,
     };
+    return checkout;
   }
 
   const stripe = getStripe()!;
@@ -119,6 +127,20 @@ export async function finalizePaidPlan(data: {
       pending.id,
     ]);
   }
+
+  // Registra o uso do cupom, se o pagamento já o utilizou.
+  const { registerCouponUse } = await import("./db/coupons");
+  const couponRow = await findPendingCoupon(pending.id);
+  if (couponRow) {
+    await registerCouponUse(couponRow);
+  }
+}
+
+async function findPendingCoupon(paymentId: string): Promise<string | undefined> {
+  const { queryOne } = await import("./db/conn");
+  const row = await queryOne("SELECT coupon_code FROM payments WHERE id = ?", [paymentId]);
+  const code = row?.coupon_code ? String(row.coupon_code) : "";
+  return code || undefined;
 }
 
 export async function startOrder(data: {
@@ -126,6 +148,8 @@ export async function startOrder(data: {
   plan: Plan;
   jobId: string;
   origin: string;
+  couponCode?: string | null;
+  couponPercent?: number;
 }): Promise<CheckoutResult & { paymentPending: boolean }> {
   const { plan, companyId, jobId, origin } = data;
 
@@ -144,14 +168,28 @@ export async function startOrder(data: {
   }
 
   // Planos pagos: cria pendência e segue para checkout.
+  const base = planPrice(plan);
+  const amount =
+    data.couponCode && data.couponPercent
+      ? discountedPrice(base, data.couponPercent)
+      : base;
+
   await createPayment({
     companyId,
     jobId,
     plan,
-    amount: planPrice(plan),
+    amount,
     status: "pending",
+    couponCode: data.couponCode ?? null,
   });
 
-  const checkout = await createCheckoutSession({ companyId, jobId, plan, origin });
+  const checkout = await createCheckoutSession({
+    companyId,
+    jobId,
+    plan,
+    origin,
+    couponCode: data.couponCode,
+    couponPercent: data.couponPercent,
+  });
   return { ...checkout, paymentPending: true };
 }

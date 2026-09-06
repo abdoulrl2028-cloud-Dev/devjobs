@@ -199,11 +199,12 @@ export async function createPayment(data: {
   currency?: string;
   status: Payment["status"];
   stripePaymentId?: string | null;
+  couponCode?: string | null;
 }): Promise<Payment> {
   const id = newId("pay");
   const createdAt = new Date().toISOString();
   await execute(
-    "INSERT INTO payments (id, company_id, job_id, plan, amount, currency, status, stripe_payment_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO payments (id, company_id, job_id, plan, amount, currency, status, stripe_payment_id, coupon_code, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       id,
       data.companyId,
@@ -213,6 +214,7 @@ export async function createPayment(data: {
       data.currency ?? "BRL",
       data.status,
       data.stripePaymentId ?? null,
+      data.couponCode ?? null,
       createdAt,
     ]
   );
@@ -224,6 +226,7 @@ export async function createPayment(data: {
     currency: data.currency ?? "BRL",
     status: data.status,
     stripePaymentId: data.stripePaymentId ?? null,
+    couponCode: data.couponCode ?? null,
     createdAt,
   };
 }
@@ -237,6 +240,7 @@ function rowToPayment(row: Record<string, unknown>): Payment {
     currency: String(row.currency),
     status: row.status as Payment["status"],
     stripePaymentId: (row.stripe_payment_id as string | null) ?? null,
+    couponCode: (row.coupon_code as string | null) ?? null,
     createdAt: String(row.created_at),
   };
 }

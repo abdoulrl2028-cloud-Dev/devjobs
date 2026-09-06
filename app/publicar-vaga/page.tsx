@@ -61,6 +61,38 @@ function PublicarVagaContent() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ message: string; jobId: string } | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<{ code: string; percent: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+
+  function discountPercent(base: number, percent: number): number {
+    return Math.round((base * (100 - percent)) / 100);
+  }
+
+  async function applyCoupon() {
+    setCouponError(null);
+    setCouponBusy(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput, plan }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setCouponApplied(null);
+        setCouponError(json.error ?? "Cupom inválido.");
+        return;
+      }
+      setCouponApplied({ code: json.data.code, percent: json.data.percent });
+      setCouponInput("");
+    } catch {
+      setCouponError("Erro de conexão. Tente novamente.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
 
   useEffect(() => {
     const urlPlan = searchParams.get("plan");
@@ -124,6 +156,7 @@ function PublicarVagaContent() {
           responsibilities: splitLines(responsibilities),
           requirements: splitLines(requirements),
           benefits: splitLines(benefits),
+          couponCode: couponApplied?.code ?? "",
         }),
       });
       const json = await res.json();
@@ -415,27 +448,78 @@ function PublicarVagaContent() {
           <h2>Escolha o plano</h2>
           <p className="form-hint">A vaga entra no ar após o pagamento (planos pagos) ou após aprovação (grátis). Pré-selecionamos o plano informado na URL.</p>
           <div className="plan-options">
-            {PLANS.map((p) => (
-              <label key={p.id} className={`plan-option ${plan === p.id ? "plan-option--active" : ""}`}>
+            {PLANS.map((p) => {
+              const showDiscount = couponApplied && p.price > 0;
+              const final = showDiscount ? discountPercent(p.price, couponApplied.percent) : p.price;
+              return (
+                <label key={p.id} className={`plan-option ${plan === p.id ? "plan-option--active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="plan"
+                    value={p.id}
+                    checked={plan === p.id}
+                    onChange={() => setPlan(p.id)}
+                  />
+                  <div className="plan-option__head">
+                    <strong>{p.name}</strong>
+                    {showDiscount ? (
+                      <span>
+                        <s className="plan-old-price">R$ {p.price}</s>{" "}
+                        <strong className="plan-new-price">R$ {final}</strong>
+                      </span>
+                    ) : (
+                      <span>{p.price === 0 ? "Grátis" : `R$ ${p.price}`}</span>
+                    )}
+                  </div>
+                  <small>{p.period}</small>
+                  <ul>
+                    {p.features.slice(0, 3).map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="coupon-box">
+            {couponApplied ? (
+              <div className="coupon-applied">
+                <span>
+                  Cupom <strong>{couponApplied.code}</strong> aplicado: −{couponApplied.percent}% nos planos pagos
+                </span>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    setCouponApplied(null);
+                    setCouponError(null);
+                  }}
+                >
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <>
                 <input
-                  type="radio"
-                  name="plan"
-                  value={p.id}
-                  checked={plan === p.id}
-                  onChange={() => setPlan(p.id)}
+                  type="text"
+                  placeholder="Cupom de desconto (ex.: LANCAMENTO)"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  disabled={couponBusy}
+                  aria-label="Cupom de desconto"
                 />
-                <div className="plan-option__head">
-                  <strong>{p.name}</strong>
-                  <span>{p.price === 0 ? "Grátis" : `R$ ${p.price}`}</span>
-                </div>
-                <small>{p.period}</small>
-                <ul>
-                  {p.features.slice(0, 3).map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                </ul>
-              </label>
-            ))}
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={applyCoupon}
+                  disabled={couponBusy || !couponInput.trim()}
+                >
+                  {couponBusy ? "Validando…" : "Aplicar"}
+                </button>
+                {couponError && <small className="coupon-error">{couponError}</small>}
+              </>
+            )}
           </div>
         </aside>
       </div>

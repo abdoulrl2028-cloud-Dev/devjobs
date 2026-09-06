@@ -4,6 +4,7 @@ import { ensureDatabaseReady } from "@/lib/db/init";
 import { updateCompany } from "@/lib/db/company";
 import { canCompanyPostMore, createJob, type NewJobInput } from "@/lib/db/jobs";
 import { startOrder } from "@/lib/payments";
+import { findCouponByCode } from "@/lib/db/coupons";
 import { PLANS, type JobType, type Plan } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -117,8 +118,20 @@ export async function POST(request: NextRequest) {
 
   const job = await createJob(jobData);
 
+  // Cupom: valida apenas no servidor, nunca confia no preço enviado pelo cliente.
+  let couponCode: string | null = null;
+  let couponPercent: number | undefined;
+  const rawCoupon = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
+  if (job.plan !== "free" && rawCoupon) {
+    const coupon = await findCouponByCode(rawCoupon);
+    if (coupon) {
+      couponCode = coupon.code;
+      couponPercent = coupon.percent;
+    }
+  }
+
   // Plano gratuito: publica direto. Pagos: gera ordem de pagamento + checkout.
-  const order = await startOrder({ companyId: job.companyId, plan: job.plan, jobId: job.id, origin: request.nextUrl.origin });
+  const order = await startOrder({ companyId: job.companyId, plan: job.plan, jobId: job.id, origin: request.nextUrl.origin, couponCode, couponPercent });
 
   return NextResponse.json(
     {
@@ -126,6 +139,8 @@ export async function POST(request: NextRequest) {
         ok: true,
         job: { id: job.id, status: job.status },
         plan: job.plan,
+        amount: order.amount,
+        coupon: couponCode,
         next: order.paymentPending ? "payment" : "done",
         checkoutUrl: order.checkoutUrl,
         mock: order.mode === "mock",

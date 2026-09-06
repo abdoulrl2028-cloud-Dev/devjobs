@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS payments (
   currency TEXT NOT NULL DEFAULT 'BRL',
   status TEXT NOT NULL,
   stripe_payment_id TEXT,
+  coupon_code TEXT,
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_payments_company ON payments(company_id);
@@ -136,6 +137,17 @@ CREATE TABLE IF NOT EXISTS job_views (
 );
 CREATE INDEX IF NOT EXISTS idx_job_views_job ON job_views(job_id);
 CREATE INDEX IF NOT EXISTS idx_job_views_date ON job_views(viewed_at);
+
+CREATE TABLE IF NOT EXISTS coupons (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  percent INTEGER NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  max_uses INTEGER NOT NULL DEFAULT 0,
+  used_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
 `;
 
 export async function migrateDatabase(): Promise<void> {
