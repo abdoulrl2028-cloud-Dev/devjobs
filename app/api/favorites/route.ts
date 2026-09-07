@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSessionUserFromRequest } from "@/lib/auth";
+import { readSessionUserFromRequest, assertSameOrigin } from "@/lib/auth";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { addFavorite, removeFavorite } from "@/lib/db/activity";
 import { getFavoriteJobs } from "@/lib/db/jobs";
@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   const { error, session } = sessionUserOr401(request);
   if (error || !session) return error;
 
@@ -48,6 +51,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   const { error, session } = sessionUserOr401(request);
   if (error || !session) return error;
 

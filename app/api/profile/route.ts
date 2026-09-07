@@ -3,6 +3,7 @@ import { requireCandidate } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { upsertProfile } from "@/lib/db/candidates";
 import { updateUserName } from "@/lib/db/users";
+import { assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ function asUrl(value: unknown): string | null {
 }
 
 export async function PUT(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCandidate();

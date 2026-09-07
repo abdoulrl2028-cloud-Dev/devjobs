@@ -7,6 +7,12 @@ import {
   hasValidCredentialsShape,
 } from "@/lib/auth";
 import { ensureDatabaseReady } from "@/lib/db/init";
+import { getClientIP } from "@/lib/rate-limit";
+import {
+  loginAttemptAllowed,
+  recordLoginFailure,
+  clearLoginFailures,
+} from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +22,8 @@ export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Origem não permitida" }, { status: 403 });
   }
+
+  const ip = getClientIP(request);
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) {
@@ -36,6 +44,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "E-mail ou senha inválidos" }, { status: 400 });
   }
 
+  // Lockout por conta (e+IP): bloqueia tentativas repetidas de senha.
+  const guard = loginAttemptAllowed(email as string, ip);
+  if (!guard.allowed) {
+    return NextResponse.json(
+      { error: "Muitas tentativas de login. Aguarde antes de tentar novamente." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(guard.retryAfterSeconds ?? 900) },
+      }
+    );
+  }
+
   await ensureDatabaseReady();
   const user = await verifyCredentials(email as string, password as string);
 
@@ -43,8 +63,11 @@ export async function POST(request: NextRequest) {
   await new Promise((resolve) => setTimeout(resolve, 250));
 
   if (!user) {
+    recordLoginFailure(email as string, ip);
     return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
   }
+
+  clearLoginFailures(email as string, ip);
 
   const token = createSessionToken(user);
   const response = NextResponse.json({

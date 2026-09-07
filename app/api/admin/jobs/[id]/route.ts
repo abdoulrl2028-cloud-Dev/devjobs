@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { deleteJob, getJobById, setJobStatus, updateJob } from "@/lib/db/jobs";
+import { assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
  * - delete: excluir.
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   try {
     await requireAdmin();
   } catch {

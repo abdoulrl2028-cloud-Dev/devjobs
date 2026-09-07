@@ -6,6 +6,7 @@ import { finalizePaidPlan } from "@/lib/payments";
 import { PLANS, type Plan } from "@/lib/types";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/payments";
+import { assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export const dynamic = "force-dynamic";
  *   status do checkout com a Stripe antes de liberar a vaga.
  */
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCompany();

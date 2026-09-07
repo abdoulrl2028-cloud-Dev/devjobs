@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCompany } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { updateCompany } from "@/lib/db/company";
+import { assertSameOrigin, safeHttpUrl } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCompany();
@@ -27,7 +31,10 @@ export async function PATCH(request: NextRequest) {
   if (typeof body.logoColor === "string" && /^#[0-9a-fA-F]{6}$/.test(body.logoColor)) {
     patch.logoColor = body.logoColor;
   }
-  if (typeof body.website === "string") patch.website = body.website.trim().slice(0, 300) || null;
+  const website = safeHttpUrl(body.website, 300);
+  if (website || (typeof body.website === "string" && body.website.trim() === "")) {
+    patch.website = website || null;
+  }
   if (typeof body.description === "string") patch.description = body.description.trim().slice(0, 2000) || null;
 
   if (Object.keys(patch).length > 0) {

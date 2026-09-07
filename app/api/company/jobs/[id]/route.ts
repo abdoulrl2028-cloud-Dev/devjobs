@@ -4,6 +4,7 @@ import { ensureDatabaseReady } from "@/lib/db/init";
 import { deleteJob, getJobById, setJobStatus, updateJob } from "@/lib/db/jobs";
 import { execute } from "@/lib/db/conn";
 import { countApplicationsForJob } from "@/lib/db/activity";
+import { assertSameOrigin, safeHttpUrl } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCompany();
@@ -100,7 +104,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.salaryMin === "number") patch.salaryMin = body.salaryMin;
     if (typeof body.salaryMax === "number") patch.salaryMax = body.salaryMax;
     if (typeof body.contactEmail === "string") patch.contactEmail = body.contactEmail.trim().slice(0, 160);
-    if (typeof body.applyUrl === "string") patch.applyUrl = body.applyUrl.trim().slice(0, 300);
+    if (typeof body.applyUrl === "string") patch.applyUrl = safeHttpUrl(body.applyUrl, 300);
     if (Array.isArray(body.tags)) patch.tags = (body.tags as string[]).filter((t) => typeof t === "string").slice(0, 20);
     if (Array.isArray(body.responsibilities)) patch.responsibilities = (body.responsibilities as string[]).slice(0, 10);
     if (Array.isArray(body.requirements)) patch.requirements = (body.requirements as string[]).slice(0, 10);
@@ -116,6 +120,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCompany();

@@ -63,7 +63,7 @@ function slidingWindow(key: string, rule: RateLimitRule): RateLimitOutcome {
 
 // IP real do cliente. A Vercel define x-forwarded-for no edge; em outras
 // hospedagens x-real-ip é usado por proxies. Não confiamos no cliente.
-function getClientIP(request: NextRequest): string {
+export function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]!.trim();
   return request.headers.get("x-real-ip") ?? "unknown";

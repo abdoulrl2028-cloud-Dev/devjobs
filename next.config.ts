@@ -11,6 +11,7 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
+  "upgrade-insecure-requests",
 ].join("; ");
 
 const securityHeaders = [

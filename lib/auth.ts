@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { hashPassword, safeEqual, createSessionToken, verifySessionToken } from "./crypto";
 import { getUserByEmail } from "./db/users";
 import type { User } from "./types";
@@ -66,6 +66,29 @@ export function isSameOrigin(
       return false;
     }
   });
+}
+
+// Proteção CSRF: bloqueia chamadas de mutação vindas de outro site.
+// Browsers sempre enviam Origin/Referer em POST/PUT/PATCH/DELETE.
+export function assertSameOrigin<N extends NextResponse = NextResponse>(
+  request: Request
+): N | null {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { error: "Origem inválida" },
+      { status: 403 }
+    ) as N;
+  }
+  return null;
+}
+
+// Aceita apenas URLs http(s) explícitas. Bloqueia javascript:, data:, vbscript:
+// e URLs relativas maliciosas. Retorna "" quando inválida.
+export function safeHttpUrl(value: unknown, maxLen = 500): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!/^https?:\/\/[^\s]+$/i.test(trimmed)) return "";
+  return trimmed.slice(0, maxLen);
 }
 
 export function isValidEmail(email: string): boolean {

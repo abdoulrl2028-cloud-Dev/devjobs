@@ -6,6 +6,7 @@ import { canCompanyPostMore, createJob, type NewJobInput } from "@/lib/db/jobs";
 import { startOrder } from "@/lib/payments";
 import { findCouponByCode } from "@/lib/db/coupons";
 import { PLANS, type JobType, type Plan } from "@/lib/types";
+import { assertSameOrigin, safeHttpUrl } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ function toInt(v: unknown, fallback: number | null): number | null {
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   let rich;
   try {
     rich = await requireCompany();
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
       typeof body.contactEmail === "string" && body.contactEmail.trim()
         ? body.contactEmail.trim().slice(0, 160)
         : "",
-    applyUrl: typeof body.applyUrl === "string" ? body.applyUrl.trim().slice(0, 300) : "",
+    applyUrl: safeHttpUrl(body.applyUrl, 300),
     plan: planId as Plan,
     status: planId === "free" ? "active" : "pending",
     responsibilities: Array.isArray(body.responsibilities)

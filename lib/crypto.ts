@@ -1,8 +1,17 @@
 import crypto from "node:crypto";
 
 const SECRET = process.env.AUTH_SECRET || "devjobs-demo-secret-change-me";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const KEY_LENGTH = 32;
 const SCRYPT_OPTIONS = { N: 16384, r: 8, p: 1 } as const;
+
+// Fail-closed: em produção sem AUTH_SECRET, recusa operações de sessão em vez
+// de usar o segredo padrão (que qualquer atacante conhece e usaria p/ forjar tokens).
+function requireSecret(): void {
+  if (IS_PRODUCTION && process.env.NODE_ENV !== "test" && !process.env.AUTH_SECRET) {
+    throw new Error("AUTH_SECRET não configurado em produção");
+  }
+}
 
 export function newSalt(): string {
   return crypto.randomBytes(16).toString("hex");
@@ -22,6 +31,7 @@ export function safeEqual(a: string, b: string): boolean {
 }
 
 export function sign(payload: string): string {
+  requireSecret();
   return crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
 }
 
@@ -49,6 +59,7 @@ export function createSessionToken(user: SessionUser): string {
 }
 
 export function verifySessionToken(token: string): SessionUser | null {
+  requireSecret();
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
   if (!safeEqual(sign(payload), sig)) return null;

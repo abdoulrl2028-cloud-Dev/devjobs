@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { getJobById } from "@/lib/db/jobs";
 import { addApplication, hasApplied } from "@/lib/db/activity";
-import { readSessionUserFromRequest } from "@/lib/auth";
+import { readSessionUserFromRequest, assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   const jobId = (await params).id;
 
   const session = readSessionUserFromRequest(request);

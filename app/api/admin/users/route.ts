@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { listUsers, deleteUser, countUsersByRole } from "@/lib/db/users";
+import { assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
+
   try {
     await requireAdmin();
   } catch {
