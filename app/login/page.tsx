@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/app-context";
+import OAuthButtons from "@/components/OAuthButtons";
 
 export default function LoginPage() {
   return (
@@ -96,6 +97,8 @@ function LoginContent() {
             {submitting ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <OAuthButtons />
 
         <p className="login-foot">
           Ainda não tem conta?{" "}

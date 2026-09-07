@@ -16,6 +16,21 @@ async function applyIncrementalMigrations(): Promise<void> {
         // Coluna já existente (SQLite/PG lançam erro neste caso).
       }
     },
+    // users.google_id, users.facebook_id, users.avatar_url (login social)
+    async () => {
+      const columns = [
+        "google_id TEXT",
+        "facebook_id TEXT",
+        "avatar_url TEXT",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE users ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+    },
   ];
   for (const migration of migrations) {
     await migration();

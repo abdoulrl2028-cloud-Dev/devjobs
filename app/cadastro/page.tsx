@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/app-context";
+import OAuthButtons from "@/components/OAuthButtons";
 
 export default function CadastroPage() {
   return (
@@ -166,6 +167,8 @@ function CadastroContent() {
             {submitting ? "Criando conta…" : "Criar conta"}
           </button>
         </form>
+
+        <OAuthButtons />
 
         <p className="login-foot">
           Já tem conta?{" "}

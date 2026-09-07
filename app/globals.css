@@ -831,6 +831,66 @@ html[data-theme="dark"] .icon-moon {
   color: var(--text-muted);
 }
 
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin: 20px 0 12px;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  font-weight: 600;
+}
+
+.oauth-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.oauth-btn--google {
+  background: #fff;
+  color: #1f1f1f;
+  border: 1px solid var(--border);
+}
+
+.oauth-btn--google:hover {
+  background: #f7f7f8;
+  color: #1f1f1f;
+}
+
+.oauth-btn--facebook {
+  background: #1877f2;
+  color: #fff;
+  border: 1px solid #1877f2;
+}
+
+.oauth-btn--facebook:hover {
+  background: #0f6add;
+  color: #fff;
+}
+
 .link {
   color: var(--primary);
   font-weight: 600;

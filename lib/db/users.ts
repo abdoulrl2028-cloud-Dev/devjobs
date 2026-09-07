@@ -1,6 +1,9 @@
+import crypto from "node:crypto";
 import { queryAll, queryOne, execute, likeEscape } from "./conn";
 import { newId, hashPassword, newSalt } from "../crypto";
 import type { User, UserRole } from "../types";
+
+export type OAuthProvider = "google" | "facebook";
 
 export type StoredUser = {
   id: string;
@@ -10,6 +13,9 @@ export type StoredUser = {
   role: UserRole;
   name: string;
   created_at: string;
+  google_id?: string | null;
+  facebook_id?: string | null;
+  avatar_url?: string | null;
 };
 
 export async function getUserByEmail(email: string): Promise<StoredUser | undefined> {
@@ -20,6 +26,75 @@ export async function getUserByEmail(email: string): Promise<StoredUser | undefi
 export async function getUserById(id: string): Promise<StoredUser | undefined> {
   const row = await queryOne("SELECT * FROM users WHERE id = ?", [id]);
   return row as unknown as StoredUser | undefined;
+}
+
+export function oauthProviderColumn(provider: OAuthProvider): "google_id" | "facebook_id" {
+  return provider === "google" ? "google_id" : "facebook_id";
+}
+
+export async function getUserByOAuth(
+  provider: OAuthProvider,
+  providerId: string
+): Promise<StoredUser | undefined> {
+  const column = oauthProviderColumn(provider);
+  const row = await queryOne(`SELECT * FROM users WHERE ${column} = ?`, [providerId]);
+  return row as unknown as StoredUser | undefined;
+}
+
+// Senha impossível para contas criadas via login social: o usuário nunca
+// autentica por senha, e mesmo que a hash vaze não pode ser usada.
+function dummyPasswordHash(salt: string): string {
+  return hashPassword(crypto.randomBytes(32).toString("hex"), salt);
+}
+
+export async function createOAuthUser({
+  provider,
+  providerId,
+  email,
+  name,
+  avatarUrl,
+}: {
+  provider: OAuthProvider;
+  providerId: string;
+  email: string;
+  name: string;
+  avatarUrl?: string | null;
+}): Promise<User> {
+  const id = newId(provider === "google" ? "ug" : "uf");
+  const salt = newSalt();
+  const createdAt = new Date().toISOString();
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = name.trim() || "Usuário DevJobs";
+  const column = oauthProviderColumn(provider);
+  await execute(
+    `INSERT INTO users (id, email, password_hash, salt, role, name, created_at, ${column}, avatar_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      cleanEmail,
+      dummyPasswordHash(salt),
+      salt,
+      "candidate",
+      cleanName,
+      createdAt,
+      providerId,
+      avatarUrl ?? null,
+    ]
+  );
+  return { id, email: cleanEmail, role: "candidate", name: cleanName, createdAt };
+}
+
+export async function linkOAuthId(
+  userId: string,
+  provider: OAuthProvider,
+  providerId: string
+): Promise<void> {
+  const column = oauthProviderColumn(provider);
+  await execute(`UPDATE users SET ${column} = ? WHERE id = ?`, [providerId, userId]);
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  await execute("UPDATE users SET avatar_url = ? WHERE id = ?", [avatarUrl, userId]);
 }
 
 export async function createUser({
