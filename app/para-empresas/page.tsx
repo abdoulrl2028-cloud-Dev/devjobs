@@ -1,9 +1,18 @@
 import Link from "next/link";
+import { openGraphDefaults, siteUrl } from "@/lib/seo";
 
 export const metadata = {
   title: "Para Empresas — Publique vagas de tecnologia",
   description:
     "Publique vagas, encontre talentos e contrate mais rápido com os planos do DevJobs.",
+  alternates: { canonical: "/para-empresas" },
+  openGraph: {
+    ...openGraphDefaults,
+    title: "Para Empresas — Publique vagas de tecnologia",
+    description:
+      "Publique vagas de tecnologia, acesse o banco de talentos e acompanhe as métricas pelo painel.",
+    url: siteUrl("/para-empresas"),
+  },
 };
 
 const benefits = [

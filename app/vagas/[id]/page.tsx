@@ -5,13 +5,90 @@ import { ensureDatabaseReady } from "@/lib/db/init";
 import { formatPostedAt, formatSalary, initials, jobTypeLabels } from "@/lib/format";
 import FavoriteButton from "@/components/FavoriteButton";
 import ApplyButton from "@/components/ApplyButton";
+import { jsonLd, siteUrl } from "@/lib/seo";
 import type { Job } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+const EMPLOYMENT_TYPES = {
+  "full-time": "FULL_TIME",
+  "part-time": "PART_TIME",
+  contract: "CONTRACTOR",
+  internship: "INTERN",
+} as const;
+
+function jobMetaDescription(job: Job): string {
+  const parts = [
+    job.title,
+    "em",
+    job.company,
+    "|",
+    job.remote ? "Remoto" : job.location,
+    job.salary ? `· ${formatSalary(job.salary)}` : "",
+  ].filter(Boolean);
+  return parts.join(" ").slice(0, 160);
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const id = (await params).id;
-  return { title: id };
+  await ensureDatabaseReady();
+  const job = await getJobById(id);
+  if (!job || job.status !== "active") return { title: "Vaga não encontrada" };
+
+  const title = `${job.title} em ${job.company}`;
+  const description = jobMetaDescription(job);
+  const url = siteUrl(`/vagas/${id}`);
+  return {
+    title,
+    description,
+    alternates: { canonical: `/vagas/${id}` },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "DevJobs",
+      locale: "pt_BR",
+      type: "website",
+    },
+    twitter: { card: "summary", title, description },
+  };
+}
+
+function jobPostingLd(job: Job) {
+  const validThrough = job.expiresAt ?? new Date(Date.now() + 30 * 86400000).toISOString();
+  return {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description,
+    datePosted: job.postedAt,
+    validThrough,
+    employmentType: EMPLOYMENT_TYPES[job.type],
+    jobLocation: {
+      "@type": "Place",
+      address: { "@type": "PostalAddress", addressLocality: job.remote ? "Remoto" : job.location },
+    },
+    ...(job.remote ? { jobLocationType: "TELECOMMUTE" } : {}),
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company,
+      ...(job.companyUrl?.startsWith("http") ? { sameAs: job.companyUrl } : {}),
+    },
+    ...(job.salary
+      ? {
+          baseSalary: {
+            "@type": "MonetaryAmount",
+            currency: job.salary.currency,
+            value: {
+              "@type": "QuantitativeValue",
+              minValue: job.salary.min,
+              maxValue: job.salary.max,
+              unitText: "MONTH",
+            },
+          },
+        }
+      : {}),
+  };
 }
 
 function DetailBadges({ job }: { job: Job }) {
@@ -40,6 +117,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="container detail-wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(jobPostingLd(job))} />
       <Link href="/" className="back-link">
         ← Voltar para vagas
       </Link>
