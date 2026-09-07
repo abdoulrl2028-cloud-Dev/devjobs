@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider, FavoritesProvider } from "@/lib/app-context";
 import Header from "@/components/Header";
@@ -21,7 +21,26 @@ export const metadata: Metadata = {
   },
   description:
     "Encontre as melhores vagas de tecnologia: frontend, backend, mobile, dados, DevOps e muito mais. Plataforma pública de empregos para devs.",
+  applicationName: "DevJobs",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "DevJobs",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon-192.png",
+  },
+  manifest: "/manifest.webmanifest",
 };
+
+const viewport: Viewport = {
+  themeColor: "#6d28d9",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export { viewport };
 
 const themeScript = `
 (function () {
@@ -42,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script defer src="/sw-register.js" />
       </head>
       <body>
         <AuthProvider>
