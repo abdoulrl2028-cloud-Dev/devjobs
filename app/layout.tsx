@@ -69,10 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Header />
             <main className="main">{children}</main>
             <footer className="footer">
-              <p>
-                <strong>DevJobs</strong> — vagas de tecnologia para pessoas desenvolvedoras.
-              </p>
-              <p>Next.js · TypeScript · API REST · © {new Date().getFullYear()}</p>
+<p>
+              <strong>DevJobs</strong> — vagas de tecnologia para pessoas desenvolvedoras.
+            </p>
+            <p>Next.js · TypeScript · API REST · © {new Date().getFullYear()} · <a href="/privacidade">Política de Privacidade</a></p>
             </footer>
           </FavoritesProvider>
         </AuthProvider>
