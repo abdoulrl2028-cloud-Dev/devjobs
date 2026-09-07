@@ -100,15 +100,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       type: "candidate" | "company",
       data: { name: string; email: string; password: string; companyName?: string }
     ) => {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, ...data }),
-      });
-      const json = await res.json();
-      if (!res.ok) return { ok: false, error: json.error };
-      await refresh();
-      return { ok: true };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      try {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, ...data }),
+          signal: controller.signal,
+        });
+        const json = await res.json();
+        if (!res.ok) return { ok: false, error: json.error };
+        await refresh();
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "Falha de conexão. Confira sua internet e tente de novo." };
+      } finally {
+        clearTimeout(timer);
+      }
     },
     [refresh]
   );
