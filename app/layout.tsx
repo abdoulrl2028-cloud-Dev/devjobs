@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider, FavoritesProvider } from "@/lib/app-context";
 import Header from "@/components/Header";
+import SiteFooter from "@/components/SiteFooter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -68,12 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <FavoritesProvider>
             <Header />
             <main className="main">{children}</main>
-            <footer className="footer">
-<p>
-              <strong>DevJobs</strong> — vagas de tecnologia para pessoas desenvolvedoras.
-            </p>
-            <p>Next.js · TypeScript · API REST · © {new Date().getFullYear()} · <a href="/privacidade">Política de Privacidade</a></p>
-            </footer>
+            <SiteFooter />
           </FavoritesProvider>
         </AuthProvider>
       </body>

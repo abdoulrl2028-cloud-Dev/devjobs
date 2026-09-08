@@ -31,6 +31,30 @@ async function applyIncrementalMigrations(): Promise<void> {
         }
       }
     },
+    // users.candidate_tier (planos do candidato: free | premium | pro)
+    async () => {
+      try {
+        await execute("ALTER TABLE users ADD COLUMN candidate_tier TEXT DEFAULT 'free'");
+      } catch {
+        // Coluna já existente.
+      }
+    },
+    // applications.stage (pipeline/kanban do candidato)
+    async () => {
+      try {
+        await execute("ALTER TABLE applications ADD COLUMN stage TEXT DEFAULT 'applied'");
+      } catch {
+        // Coluna já existente.
+      }
+    },
+    // applications.notes (observações do candidato sobre a aplicação)
+    async () => {
+      try {
+        await execute("ALTER TABLE applications ADD COLUMN notes TEXT");
+      } catch {
+        // Coluna já existente.
+      }
+    },
   ];
   for (const migration of migrations) {
     await migration();

@@ -10,6 +10,8 @@ function toApplication(row: Record<string, unknown>): Application {
     jobId: String(row.job_id),
     candidateId: String(row.candidate_id),
     status: (row.status ?? "applied") as Application["status"],
+    stage: (row.stage ?? "applied") as Application["stage"],
+    notes: (row.notes as string | null) ?? null,
     appliedAt: String(row.applied_at),
   };
 }
@@ -28,7 +30,7 @@ export async function addApplication(jobId: string, candidateId: string): Promis
     "INSERT INTO applications (id, job_id, candidate_id, status, applied_at) VALUES (?, ?, ?, 'applied', ?)",
     [id, jobId, candidateId, appliedAt]
   );
-  return { id, jobId, candidateId, status: "applied", appliedAt };
+  return { id, jobId, candidateId, status: "applied", stage: "applied", notes: null, appliedAt };
 }
 
 export async function hasApplied(jobId: string, candidateId: string): Promise<boolean> {

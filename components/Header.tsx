@@ -10,6 +10,10 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    return null;
+  }
+
   async function handleLogout() {
     await logout();
     router.push("/");

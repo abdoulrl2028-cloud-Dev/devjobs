@@ -148,6 +148,72 @@ CREATE TABLE IF NOT EXISTS coupons (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+
+/* ---------- DevJobs Premium (candidato) ---------- */
+
+CREATE TABLE IF NOT EXISTS resumes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL,
+  data TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_resumes_user ON resumes(user_id);
+
+CREATE TABLE IF NOT EXISTS alerts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  query TEXT NOT NULL DEFAULT '',
+  location TEXT,
+  remote INTEGER NOT NULL DEFAULT 0,
+  type TEXT,
+  salary_min INTEGER,
+  tags TEXT NOT NULL DEFAULT '[]',
+  frequency TEXT NOT NULL DEFAULT 'weekly',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  last_run_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_alerts_user ON alerts(user_id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  type TEXT NOT NULL DEFAULT 'info',
+  title TEXT NOT NULL,
+  body TEXT,
+  job_id TEXT,
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read);
+
+CREATE TABLE IF NOT EXISTS interviews (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  track TEXT NOT NULL,
+  job_id TEXT,
+  topic TEXT NOT NULL DEFAULT '',
+  questions TEXT NOT NULL DEFAULT '[]',
+  answers TEXT NOT NULL DEFAULT '[]',
+  score INTEGER,
+  metrics TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'completed',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interviews_user ON interviews(user_id);
+
+CREATE TABLE IF NOT EXISTS ai_analyses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  job_id TEXT,
+  score INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_analyses_user ON ai_analyses(user_id);
 `;
 
 export async function migrateDatabase(): Promise<void> {

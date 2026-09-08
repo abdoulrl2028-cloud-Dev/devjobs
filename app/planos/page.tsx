@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { PLANS, type Plan } from "@/lib/types";
+import { useCallback, useEffect, useState } from "react";
+import { PLANS, CANDIDATE_PLANS, type Plan, type CandidateTier } from "@/lib/types";
 import { useAuth } from "@/lib/app-context";
 
 export default function PlanosPage() {
   const { user, loading } = useAuth();
-  const [selected, setSelected] = useState<Plan>("pro");
-
-  function hrefForPlan(plan: Plan): string {
-    if (plan === "free") return user ? "/publicar-vaga?plan=free" : "/cadastro?role=company";
-    return `/publicar-vaga?plan=${plan}`;
-  }
+  const isCandidate = user?.role === "candidate";
+  const [selected, setSelected] = useState<Plan | CandidateTier>("pro");
+  const [currentTier, setCurrentTier] = useState<CandidateTier | null>(null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -21,6 +18,110 @@ export default function PlanosPage() {
       setSelected(plan as Plan);
     }
   }, []);
+
+  const loadTier = useCallback(async () => {
+    if (!isCandidate) return;
+    try {
+      const res = await fetch("/api/me/dashboard", { cache: "no-store" });
+      if (!res.ok) return;
+      const json = await res.json();
+      setCurrentTier((json.data?.plan as CandidateTier) ?? "free");
+    } catch {
+      // não logado: sem plano atual
+    }
+  }, [isCandidate]);
+
+  useEffect(() => {
+    loadTier();
+  }, [loadTier]);
+
+  function hrefForPlan(plan: Plan): string {
+    if (plan === "free") return user ? "/publicar-vaga?plan=free" : "/cadastro?role=company";
+    return `/publicar-vaga?plan=${plan}`;
+  }
+
+  if (isCandidate) {
+    return (
+      <div className="container">
+        <section className="page-hero page-hero--pricing">
+          <span className="page-hero__eyebrow">Planos para candidatos</span>
+          <h1>
+            Escolha o plano <span>ideal para você</span>
+          </h1>
+          <p>
+            Comece grátis com análises de IA do seu perfil contra as vagas, kanban de candidaturas,
+            currículos e alertas. Evolua para acelerar suas chances.
+          </p>
+        </section>
+
+        <div className="candidate-current" aria-live="polite">
+          {currentTier ? (
+            <p>
+              Plano atual: <strong>{CANDIDATE_PLANS.find((p) => p.id === currentTier)?.name ?? currentTier}</strong>
+            </p>
+          ) : (
+            <p>Sem plano definido ainda — o plano Grátis já esta ativo para você.</p>
+          )}
+        </div>
+
+        <section className="pricing-grid" aria-label="Planos para candidatos">
+          {CANDIDATE_PLANS.map((plan) => {
+            const isPopular = plan.popular;
+            const isCurrent = currentTier === plan.id;
+            const isSelected = selected === plan.id;
+            return (
+              <div
+                className={`pricing-card ${isPopular ? "pricing-card--popular" : ""} ${
+                  isSelected ? "pricing-card--selected" : ""
+                } ${isCurrent ? "pricing-card--current" : ""}`}
+                key={plan.id}
+                onClick={() => setSelected(plan.id)}
+              >
+                {isPopular && <span className="pricing-card__flag">Mais popular</span>}
+                <h2 className="pricing-card__name">{plan.name}</h2>
+                <p className="pricing-card__tagline">{plan.tagline}</p>
+                <div className="pricing-card__price">
+                  {plan.price === 0 ? (
+                    <strong>R$ 0</strong>
+                  ) : (
+                    <strong>
+                      R$ {plan.price}
+                    </strong>
+                  )}
+                  <span>{plan.period}</span>
+                </div>
+                <ul className="pricing-card__features">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                </ul>
+                {isCurrent ? (
+                  <button className="btn btn--block btn--primary" disabled>
+                    Seu plano atual ✓
+                  </button>
+                ) : plan.id === "free" ? (
+                  <Link href="/app/configuracoes" className="btn btn--block btn--primary">
+                    Manter Grátis
+                  </Link>
+                ) : (
+                  <Link href="/app/configuracoes" className="btn btn--block btn--primary">
+                    Conhecer {plan.name}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        <section className="pricing-note">
+          <p>
+            Os planos pagos para candidatos serão ativados em breve. Enquanto isso, o plano Grátis
+            ja inclui perfil, currículo, candidaturas e 2 análises de IA por mês.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="container">

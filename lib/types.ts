@@ -2,6 +2,32 @@ export type UserRole = "candidate" | "company" | "admin";
 
 export type Plan = "free" | "destaque" | "pro" | "empresa";
 
+// Planos do candidato (DevJobs Premium). "free" é o tier padrão;
+// o campo DB é users.candidate_tier.
+export type CandidateTier = "free" | "premium" | "pro";
+
+// Etapas do pipeline/kanban de candidaturas.
+export const APPLICATION_STAGES = [
+  "applied", // Candidatura enviada
+  "test", // Teste técnico
+  "interview", // Entrevista
+  "offer", // Oferta
+  "hired", // Contratado
+  "rejected", // Recusada
+] as const;
+
+export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
+
+export type InterviewTrack =
+  | "frontend"
+  | "backend"
+  | "fullstack"
+  | "mobile"
+  | "devops"
+  | "data"
+  | "cybersecurity"
+  | "game";
+
 export type JobStatus =
   | "pending"
   | "active"
@@ -103,7 +129,10 @@ export type Application = {
   jobId: string;
   candidateId: string;
   status: "applied" | "viewed" | "rejected" | "accepted";
+  stage: ApplicationStage;
+  notes: string | null;
   appliedAt: string;
+  job?: Job;
 };
 
 export type Payment = {
@@ -218,4 +247,201 @@ export const PLAN_COLORS: Record<Plan, string> = {
   destaque: "#f59e0b",
   pro: "#6d28d9",
   empresa: "#0ea5e9",
+};
+
+/* ---------- DevJobs Premium: tipos do candidato ---------- */
+
+export type ResumeData = {
+  fullName: string;
+  headline: string;
+  email: string;
+  phone: string;
+  summary: string;
+  skills: string[];
+  experienceItems: Array<{
+    role: string;
+    company: string;
+    period: string;
+    description: string;
+    skills: string[];
+  }>;
+  education: Array<{
+    degree: string;
+    school: string;
+    period: string;
+  }>;
+  projects: Array<{
+    name: string;
+    description: string;
+    tags: string[];
+    url: string;
+  }>;
+  languages: Array<{ name: string; level: string }>;
+};
+
+export type Resume = {
+  id: string;
+  userId: string;
+  title: string;
+  data: ResumeData;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Alert = {
+  id: string;
+  userId: string;
+  name: string;
+  query: string;
+  location: string | null;
+  remote: boolean;
+  type: JobType | null;
+  salaryMin: number | null;
+  tags: string[];
+  frequency: "daily" | "weekly" | "monthly";
+  active: boolean;
+  createdAt: string;
+  lastRunAt: string | null;
+};
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  type: "info" | "success" | "warning" | "new_job" | "application" | "offer";
+  title: string;
+  body: string | null;
+  jobId: string | null;
+  read: boolean;
+  createdAt: string;
+};
+
+export type Interview = {
+  id: string;
+  userId: string;
+  track: InterviewTrack;
+  topic: string;
+  questions: string[];
+  answers: string[];
+  score: number | null;
+  metrics: {
+    technical: number;
+    communication: number;
+    clarity: number;
+    experience: number;
+    problemSolving: number;
+  };
+  status: "completed";
+  createdAt: string;
+};
+
+export type AiAnalysis = {
+  score: number;
+  scoreLabel: string;
+  techMatches: Array<{ name: string; present: boolean; level: number }>;
+  requirementsMet: string[];
+  requirementsMissing: string[];
+  strengths: string[];
+  weakPoints: string[];
+  suggestions: string[];
+  summary: string;
+};
+
+export type SalaryAnalysis = {
+  jobTitle: string;
+  level: string;
+  modality: string;
+  reported: { min: number; max: number } | null;
+  averageEstimate: { min: number; max: number };
+  vendorP25: number;
+  median: number;
+  p75: number;
+  sampleCount: number;
+  comparison: "below" | "within" | "above";
+  insights: string[];
+};
+
+export type CandidatePlanInfo = {
+  id: CandidateTier;
+  name: string;
+  price: number;
+  period: string;
+  tagline: string;
+  features: string[];
+  aiAnalysesPerMonth: number | null; // null = ilimitado
+  popular?: boolean;
+};
+
+export const CANDIDATE_PLANS: CandidatePlanInfo[] = [
+  {
+    id: "free",
+    name: "Grátis",
+    price: 0,
+    period: "para sempre",
+    tagline: "Comece sua busca",
+    features: [
+      "Perfil e currículo",
+      "Candidaturas e favoritos",
+      "2 análises de IA por mês",
+      "Alertas (semanal)",
+    ],
+    aiAnalysesPerMonth: 2,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: 19,
+    period: "por mês",
+    tagline: "Para acelerar suas chances",
+    popular: true,
+    features: [
+      "Tudo do Grátis",
+      "20 análises de IA por mês",
+      "Kanban de candidaturas",
+      "Entrevistas simuladas",
+      "Análise salarial",
+      "Badge Premium",
+    ],
+    aiAnalysesPerMonth: 20,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 39,
+    period: "por mês",
+    tagline: "Para quem busca a vaga ideal",
+    features: [
+      "Tudo do Premium",
+      "Análises de IA ilimitadas",
+      "Currículos ilimitados",
+      "Adaptar currículo por vaga",
+      "Suporte prioritário",
+    ],
+    aiAnalysesPerMonth: null,
+  },
+];
+
+export const CANDIDATE_TIER_NAMES: Record<CandidateTier, string> = {
+  free: "Grátis",
+  premium: "Premium",
+  pro: "Pro",
+};
+
+export const APPLICATION_STAGE_LABELS: Record<string, string> = {
+  applied: "Candidatura enviada",
+  test: "Teste técnico",
+  interview: "Entrevista",
+  offer: "Oferta",
+  hired: "Contratado",
+  rejected: "Recusada",
+};
+
+export const INTERVIEW_TRACK_LABELS: Record<InterviewTrack, string> = {
+  frontend: "Frontend",
+  backend: "Backend",
+  fullstack: "Full-stack",
+  mobile: "Mobile",
+  devops: "DevOps",
+  data: "Dados",
+  cybersecurity: "Cybersegurança",
+  game: "Game dev",
 };

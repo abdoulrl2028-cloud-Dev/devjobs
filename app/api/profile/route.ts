@@ -7,6 +7,15 @@ import { assertSameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+export async function GET(request: NextRequest) {
+  try {
+    const { user, profile } = await requireCandidate();
+    return NextResponse.json({ data: { profile } });
+  } catch (e) {
+    return NextResponse.json({ error: "Faça login como candidato(a)." }, { status: 401 });
+  }
+}
+
 function asUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const trimmed = value.trim();
