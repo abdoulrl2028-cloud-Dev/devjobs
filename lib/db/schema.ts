@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS candidate_subscriptions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
   tier TEXT NOT NULL,
+  cadence TEXT NOT NULL DEFAULT 'monthly',
   amount INTEGER NOT NULL,
   currency TEXT NOT NULL DEFAULT 'BRL',
   status TEXT NOT NULL DEFAULT 'pending',

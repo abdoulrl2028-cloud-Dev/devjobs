@@ -8,6 +8,11 @@ import type { CandidateProfile } from "@/lib/types";
 type Data = {
   profile: CandidateProfile | null;
   plan: string;
+  subscription: {
+    tier: string;
+    cadence: "monthly" | "annual" | string | null;
+    expiresAt: string | null;
+  } | null;
 };
 
 const PLAN_NAMES: Record<string, string> = {
@@ -16,12 +21,24 @@ const PLAN_NAMES: Record<string, string> = {
   pro: "Pro",
 };
 
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function ConfiguracoesPage() {
   const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifState, setNotifState] = useState<"default" | "granted" | "denied">("default");
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -61,7 +78,31 @@ export default function ConfiguracoesPage() {
     router.push("/");
   };
 
+  const cancelPlan = async () => {
+    setCanceling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch("/api/me/plan/cancel", { method: "POST", cache: "no-store" });
+      const body = (await res.json()) as {
+        error?: string;
+        data?: { ok: boolean; message?: string };
+      };
+      if (!res.ok || !body.data?.ok) {
+        setCancelError(body.error ?? "Não foi possível cancelar a assinatura.");
+        return;
+      }
+      await load();
+    } catch {
+      setCancelError("Falha de rede ao cancelar a assinatura.");
+    } finally {
+      setCanceling(false);
+      setConfirmCancel(false);
+    }
+  };
+
   const plan = data?.plan ?? "free";
+  const subscription = data?.subscription ?? null;
+  const isSubscribed = subscription && subscription.expiresAt && new Date(subscription.expiresAt).getTime() > Date.now();
 
   return (
     <div className="app-page">
@@ -91,7 +132,19 @@ export default function ConfiguracoesPage() {
               <p className="app-sub">
                 Seu plano é <strong>{PLAN_NAMES[plan] ?? "Grátis"}</strong>.
               </p>
-              {plan === "free" && (
+              {isSubscribed && (
+                <dl className="subscription-details">
+                  <div>
+                    <dt>Cobrança</dt>
+                    <dd>{subscription.cadence === "annual" ? "Anual" : "Mensal"}</dd>
+                  </div>
+                  <div>
+                    <dt>Expira em</dt>
+                    <dd>{formatDate(subscription.expiresAt)}</dd>
+                  </div>
+                </dl>
+              )}
+              {plan === "free" && !isSubscribed && (
                 <div className="app-note">
                   Conheça os benefícios do Premium para acelerar sua busca por vaga.{" "}
                   <Link href="/planos">Ver benefícios →</Link>
@@ -99,9 +152,46 @@ export default function ConfiguracoesPage() {
               )}
               <div className="app-card__actions">
                 <Link href="/planos" className="btn btn--primary btn--sm">
-                  Ver planos
+                  {isSubscribed ? "Gerenciar plano" : "Ver planos"}
                 </Link>
+                {isSubscribed && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => setConfirmCancel(true)}
+                    disabled={canceling}
+                  >
+                    {canceling ? "Cancelando…" : "Cancelar assinatura"}
+                  </button>
+                )}
               </div>
+              {isSubscribed && confirmCancel && (
+                <div className="app-note app-note--warn subscribe-cancel-note">
+                  <p>
+                    Ao cancelar, você volta imediatamente para o plano Grátis e perde os benefícios
+                    pagos (análises de IA premium, etc.).
+                  </p>
+                  <div className="app-card__actions">
+                    <button
+                      type="button"
+                      className="btn btn--danger btn--sm"
+                      onClick={cancelPlan}
+                      disabled={canceling}
+                    >
+                      {canceling ? "Cancelando…" : "Confirmar cancelamento"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => setConfirmCancel(false)}
+                      disabled={canceling}
+                    >
+                      Manter plano
+                    </button>
+                  </div>
+                  {cancelError && <p className="app-error planos-error">{cancelError}</p>}
+                </div>
+              )}
             </div>
           </section>
 

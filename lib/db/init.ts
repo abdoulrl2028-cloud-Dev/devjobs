@@ -55,6 +55,14 @@ async function applyIncrementalMigrations(): Promise<void> {
         // Coluna já existente.
       }
     },
+    // candidate_subscriptions.cadence (mensal | anual)
+    async () => {
+      try {
+        await execute("ALTER TABLE candidate_subscriptions ADD COLUMN cadence TEXT NOT NULL DEFAULT 'monthly'");
+      } catch {
+        // Coluna já existente.
+      }
+    },
   ];
   for (const migration of migrations) {
     await migration();

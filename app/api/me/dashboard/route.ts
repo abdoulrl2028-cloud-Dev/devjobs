@@ -4,7 +4,7 @@ import { ensureDatabaseReady } from "@/lib/db/init";
 import { getProfileByUserId } from "@/lib/db/candidates";
 import { getFavoriteJobs } from "@/lib/db/jobs";
 import { searchJobs } from "@/lib/db/jobs";
-import { listApplicationsForCandidateFull, getCandidateTier } from "@/lib/db/premium";
+import { listApplicationsForCandidateFull, getCandidateTier, findActiveCandidateSubscription } from "@/lib/db/premium";
 import { analyzeCompatibility } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +17,12 @@ export async function GET(request: NextRequest) {
   await ensureDatabaseReady();
 
   const profile = (await getProfileByUserId(session.id)) ?? null;
-  const [applications, favorites, recommended, tier] = await Promise.all([
+  const [applications, favorites, recommended, tier, subscription] = await Promise.all([
     listApplicationsForCandidateFull(session.id),
     getFavoriteJobs(session.id),
     searchJobs({ q: null, location: null, type: null, remote: null, include: ["active"] }),
     getCandidateTier(session.id),
+    findActiveCandidateSubscription(session.id),
   ]);
 
   const byStage = (stage: string) =>
@@ -59,6 +60,14 @@ export async function GET(request: NextRequest) {
   const data = {
     profile,
     plan: tier,
+    subscription:
+      subscription && subscription.expiresAt && new Date(subscription.expiresAt).getTime() > Date.now()
+        ? {
+            tier: subscription.tier,
+            cadence: subscription.cadence,
+            expiresAt: subscription.expiresAt,
+          }
+        : null,
     stats: {
       applications: applications.length,
       favorites: favorites.length,

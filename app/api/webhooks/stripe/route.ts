@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, finalizePaidPlan } from "@/lib/payments";
-import { finalizeCandidatePaidPlan } from "@/lib/payments-candidate";
+import { finalizeCandidatePaidPlan, type CandidateCadence } from "@/lib/payments-candidate";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { getCompanyById } from "@/lib/db/company";
 import type { Plan, CandidateTier } from "@/lib/types";
@@ -58,10 +58,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (userId && (tier === "premium" || tier === "pro")) {
+      const cadence: CandidateCadence = session.metadata?.cadence === "annual" ? "annual" : "monthly";
       try {
         await finalizeCandidatePaidPlan({
           userId,
           tier,
+          cadence,
           mock: false,
           stripePaymentId: session.id,
         });

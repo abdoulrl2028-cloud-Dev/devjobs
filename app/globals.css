@@ -3826,3 +3826,75 @@ html[data-theme="dark"] .stage-chip--hired {
 .planos-confirmacao--error h2 {
   color: var(--danger);
 }
+
+/* Toggle mensal/anual dos planos */
+.pricing-billing {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 24px auto 28px;
+  max-width: 420px;
+}
+.pricing-billing__opt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.pricing-billing__opt--active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-soft, rgba(47, 128, 237, 0.08));
+}
+.pricing-billing__save {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #e6f6ec;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.pricing-card__pcad {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Detalhes da assinatura nas configurações */
+.subscription-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin: 12px 0 0;
+}
+.subscription-details > div {
+  min-width: 120px;
+}
+.subscription-details dt {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.subscription-details dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.app-note--warn {
+  border-color: #f59e0b;
+  background: #fff9ec;
+}
+.subscribe-cancel-note {
+  margin-top: 16px;
+}

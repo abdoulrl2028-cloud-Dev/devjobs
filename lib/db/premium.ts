@@ -57,15 +57,16 @@ export async function findPendingCandidateSubscription(
 
 export async function findActiveCandidateSubscription(
   userId: string
-): Promise<{ id: string; tier: CandidateTier; expiresAt: string | null } | undefined> {
+): Promise<{ id: string; tier: CandidateTier; cadence: string | null; expiresAt: string | null } | undefined> {
   const row = await queryOne(
-    "SELECT id, tier, expires_at FROM candidate_subscriptions WHERE user_id = ? AND status = 'active' ORDER BY expires_at DESC LIMIT 1",
+    "SELECT id, tier, cadence, expires_at FROM candidate_subscriptions WHERE user_id = ? AND status = 'active' ORDER BY expires_at DESC LIMIT 1",
     [userId]
   );
   if (!row?.id) return undefined;
   return {
     id: String(row.id),
     tier: (row.tier === "premium" || row.tier === "pro" ? row.tier : "free") as CandidateTier,
+    cadence: row.cadence ? String(row.cadence) : null,
     expiresAt: row.expires_at ? String(row.expires_at) : null,
   };
 }
@@ -73,40 +74,46 @@ export async function findActiveCandidateSubscription(
 export async function createPendingCandidateSubscription(
   userId: string,
   tier: CandidateTier,
+  cadence: string,
   amount: number
 ): Promise<string> {
   const id = newId("sub");
   await execute(
-    "INSERT INTO candidate_subscriptions (id, user_id, tier, amount, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)",
-    [id, userId, tier, amount, new Date().toISOString()]
+    "INSERT INTO candidate_subscriptions (id, user_id, tier, cadence, amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)",
+    [id, userId, tier, cadence, amount, new Date().toISOString()]
   );
   return id;
 }
 
+export async function cancelActiveCandidateSubscription(
+  userId: string
+): Promise<boolean> {
+  const active = await findActiveCandidateSubscription(userId);
+  if (active) {
+    await execute("UPDATE candidate_subscriptions SET status = 'canceled' WHERE id = ?", [active.id]);
+    await setCandidateTier(userId, "free");
+    return true;
+  }
+  return false;
+}
+
 export async function activateCandidateSubscription(data: {
+  id: string;
   userId: string;
   tier: CandidateTier;
+  cadence: string;
   mock: boolean;
   stripePaymentId?: string | null;
 }): Promise<void> {
   const now = new Date();
-  const expires = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString();
-  if (data.mock) {
-    // Modo mock: ativa a assinatura pendente mais recente para este plano.
-    await execute(
-      `UPDATE candidate_subscriptions
-       SET status = 'active', started_at = ?, expires_at = ?
-       WHERE user_id = ? AND tier = ? AND status = 'pending'`,
-      [now.toISOString(), expires, data.userId, data.tier]
-    );
-  } else {
-    await execute(
-      `UPDATE candidate_subscriptions
-       SET status = 'active', started_at = ?, expires_at = ?, stripe_payment_id = ?
-       WHERE user_id = ? AND tier = ? AND status = 'pending'`,
-      [now.toISOString(), expires, data.stripePaymentId ?? null, data.userId, data.tier]
-    );
-  }
+  const months = data.cadence === "annual" ? 12 : 1;
+  const expires = new Date(now.getFullYear(), now.getMonth() + months, now.getDate()).toISOString();
+  await execute(
+    `UPDATE candidate_subscriptions
+     SET status = 'active', started_at = ?, expires_at = ?, stripe_payment_id = ?
+     WHERE id = ?`,
+    [now.toISOString(), expires, data.stripePaymentId ?? null, data.id]
+  );
   await setCandidateTier(data.userId, data.tier);
 }
 

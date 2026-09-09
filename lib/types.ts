@@ -364,6 +364,7 @@ export type CandidatePlanInfo = {
   id: CandidateTier;
   name: string;
   price: number;
+  annualPrice?: number; // preço anual (faturamento único), default = price * 10 (2 meses grátis)
   period: string;
   tagline: string;
   features: string[];
@@ -390,6 +391,7 @@ export const CANDIDATE_PLANS: CandidatePlanInfo[] = [
     id: "premium",
     name: "Premium",
     price: 19,
+    annualPrice: 190,
     period: "por mês",
     tagline: "Para acelerar suas chances",
     popular: true,
@@ -407,6 +409,7 @@ export const CANDIDATE_PLANS: CandidatePlanInfo[] = [
     id: "pro",
     name: "Pro",
     price: 39,
+    annualPrice: 390,
     period: "por mês",
     tagline: "Para quem busca a vaga ideal",
     features: [

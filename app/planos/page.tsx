@@ -5,10 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { PLANS, CANDIDATE_PLANS, type Plan, type CandidateTier } from "@/lib/types";
 import { useAuth } from "@/lib/app-context";
 
+type Cadence = "monthly" | "annual";
+
 export default function PlanosPage() {
   const { user, loading } = useAuth();
   const isCandidate = user?.role === "candidate";
   const [selected, setSelected] = useState<Plan | CandidateTier>("pro");
+  const [cadence, setCadence] = useState<Cadence>("monthly");
   const [currentTier, setCurrentTier] = useState<CandidateTier | null>(null);
   const [checkingPlan, setCheckingPlan] = useState<CandidateTier | null>(null);
   const [planFormError, setPlanFormError] = useState("");
@@ -53,7 +56,7 @@ export default function PlanosPage() {
       const res = await fetch("/api/me/plan/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, cadence }),
       });
       const json = (await res.json()) as {
         error?: string;
@@ -71,7 +74,7 @@ export default function PlanosPage() {
       const confirm = await fetch("/api/me/plan/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, cadence }),
       });
       const cjson = (await confirm.json()) as {
         error?: string;
@@ -115,11 +118,31 @@ export default function PlanosPage() {
           )}
         </div>
 
+        <div className="pricing-billing" role="group" aria-label="Cobrança">
+          <button
+            type="button"
+            className={`pricing-billing__opt ${cadence === "monthly" ? "pricing-billing__opt--active" : ""}`}
+            onClick={() => setCadence("monthly")}
+          >
+            Mensal
+          </button>
+          <button
+            type="button"
+            className={`pricing-billing__opt ${cadence === "annual" ? "pricing-billing__opt--active" : ""}`}
+            onClick={() => setCadence("annual")}
+          >
+            Anual
+            <span className="pricing-billing__save">2 meses grátis</span>
+          </button>
+        </div>
+
         <section className="pricing-grid" aria-label="Planos para candidatos">
           {CANDIDATE_PLANS.map((plan) => {
             const isPopular = plan.popular;
             const isCurrent = currentTier === plan.id;
             const isSelected = selected === plan.id;
+            const showPrice = cadence === "annual" ? (plan.annualPrice ?? plan.price * 10) : plan.price;
+            const perMonth = cadence === "annual" ? Math.round(showPrice / 12) : plan.price;
             return (
               <div
                 className={`pricing-card ${isPopular ? "pricing-card--popular" : ""} ${
@@ -136,10 +159,17 @@ export default function PlanosPage() {
                     <strong>R$ 0</strong>
                   ) : (
                     <strong>
-                      R$ {plan.price}
+                      R$ {perMonth}
+                      <small className="pricing-card__pcad">/mês</small>
                     </strong>
                   )}
-                  <span>{plan.period}</span>
+                  <span>
+                    {plan.price === 0
+                      ? plan.period
+                      : cadence === "annual"
+                        ? `cobrado R$ ${showPrice}/ano`
+                        : plan.period}
+                  </span>
                 </div>
                 <ul className="pricing-card__features">
                   {plan.features.map((feature) => (
@@ -162,7 +192,9 @@ export default function PlanosPage() {
                   >
                     {checkingPlan === plan.id
                       ? "Verificando…"
-                      : `Assinar ${plan.name} — R$ ${plan.price}/mês`}
+                      : cadence === "annual"
+                        ? `Assinar ${plan.name} — ${showPrice}/ano`
+                        : `Assinar ${plan.name} — R$ ${plan.price}/mês`}
                   </button>
                 )}
               </div>
@@ -174,9 +206,10 @@ export default function PlanosPage() {
 
         <section className="pricing-note">
           <p>
-            Pagamento seguro via <strong>Stripe</strong> ou modo de teste (mock) enquanto as chaves
-            reais não são configuradas. Assinatura mensal renovável; cancele quando quiser no
-            painel do candidato.
+            <strong>Grátis para sempre</strong>, sem cartão de crédito. Planos pagos:
+            Stripe <em>(modo de teste/mock ativo até as chaves reais serem configuradas)</em>,
+            renovação mensal ou anual e cancelamento quando quiser nas{" "}
+            <Link href="/app/configuracoes" className="link">configurações</Link>.
           </p>
         </section>
       </div>

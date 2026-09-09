@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCandidate } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
-import { getCandidateTier } from "@/lib/db/premium";
-import { finalizeCandidatePaidPlan } from "@/lib/payments-candidate";
+import { finalizeCandidatePaidPlan, type CandidateCadence } from "@/lib/payments-candidate";
 import { mockPaymentsEnabled, getStripe } from "@/lib/payments";
 import { assertSameOrigin } from "@/lib/auth";
 import { CANDIDATE_PLANS, type CandidateTier } from "@/lib/types";
@@ -37,6 +36,7 @@ export async function POST(request: NextRequest) {
     typeof body.tier === "string" && CANDIDATE_PLANS.some((p) => p.id === body.tier)
       ? (body.tier as CandidateTier)
       : null;
+  const cadence: CandidateCadence = body.cadence === "annual" ? "annual" : "monthly";
   const sessionId = typeof body.session_id === "string" ? body.session_id : null;
 
   if (!tier || tier === "free") {
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       await finalizeCandidatePaidPlan({
         userId: session.user.id,
         tier,
+        cadence,
         mock: true,
       });
     } catch (error) {
@@ -86,11 +87,16 @@ export async function POST(request: NextRequest) {
   if (checkoutSession.payment_status !== "paid" || checkoutSession.metadata?.tier !== tier) {
     return NextResponse.json({ error: "Pagamento não confirmado" }, { status: 402 });
   }
+  const sessionCadence: CandidateCadence = checkoutSession.metadata?.cadence === "annual" ? "annual" : "monthly";
+  if (sessionCadence !== cadence) {
+    return NextResponse.json({ error: "Cadência do pagamento não confere com o plano." }, { status: 402 });
+  }
 
   try {
     await finalizeCandidatePaidPlan({
       userId: session.user.id,
       tier,
+      cadence,
       mock: false,
       stripePaymentId: sessionId,
     });
@@ -105,7 +111,8 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 
+  const period = cadence === "annual" ? "anual" : "mensal";
   return NextResponse.json({
-    data: { ok: true, tier, message: `Plano ${CANDIDATE_PLANS.find((p) => p.id === tier)?.name} ativado!` },
+    data: { ok: true, tier, cadence, message: `Plano ${CANDIDATE_PLANS.find((p) => p.id === tier)?.name} ${period} ativado!` },
   });
 }

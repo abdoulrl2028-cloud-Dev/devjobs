@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCandidate } from "@/lib/context";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { getCandidateTier } from "@/lib/db/premium";
-import { startCandidateOrder } from "@/lib/payments-candidate";
+import { startCandidateOrder, type CandidateCadence } from "@/lib/payments-candidate";
 import { assertSameOrigin } from "@/lib/auth";
 import { CANDIDATE_PLANS, type CandidateTier } from "@/lib/types";
 
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     typeof body.tier === "string" && CANDIDATE_PLANS.some((p) => p.id === body.tier)
       ? (body.tier as CandidateTier)
       : null;
+  const cadence: CandidateCadence = body.cadence === "annual" ? "annual" : "monthly";
 
   if (!tier || tier === "free") {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
   const checkout = await startCandidateOrder({
     userId: session.user.id,
     tier,
+    cadence,
     origin,
   });
 
