@@ -10,6 +10,8 @@ export default function PlanosPage() {
   const isCandidate = user?.role === "candidate";
   const [selected, setSelected] = useState<Plan | CandidateTier>("pro");
   const [currentTier, setCurrentTier] = useState<CandidateTier | null>(null);
+  const [checkingPlan, setCheckingPlan] = useState<CandidateTier | null>(null);
+  const [planFormError, setPlanFormError] = useState("");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -38,6 +40,55 @@ export default function PlanosPage() {
   function hrefForPlan(plan: Plan): string {
     if (plan === "free") return user ? "/publicar-vaga?plan=free" : "/cadastro?role=company";
     return `/publicar-vaga?plan=${plan}`;
+  }
+
+  async function subscribe(tier: CandidateTier) {
+    setPlanFormError("");
+    if (!user) {
+      window.location.href = `/cadastro?next=/planos`;
+      return;
+    }
+    setCheckingPlan(tier);
+    try {
+      const res = await fetch("/api/me/plan/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        data?: { mode?: "stripe" | "mock"; checkoutUrl?: string | null };
+      };
+      if (!res.ok || !json.data) {
+        setPlanFormError(json.error ?? "Não foi possível iniciar o checkout.");
+        return;
+      }
+      if (json.data.mode === "stripe" && json.data.checkoutUrl) {
+        window.location.href = json.data.checkoutUrl;
+        return;
+      }
+      // Modo mock: confirma direto e recarrega o plano atual.
+      const confirm = await fetch("/api/me/plan/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const cjson = (await confirm.json()) as {
+        error?: string;
+        data?: { ok?: boolean; message?: string };
+      };
+      if (!confirm.ok || !cjson.data?.ok) {
+        setPlanFormError(cjson.error ?? "Não foi possível confirmar o pagamento.");
+        return;
+      }
+      await loadTier();
+      setPlanFormError("");
+      window.alert(`✅ ${cjson.data.message ?? "Plano ativado!"}`);
+    } catch {
+      setPlanFormError("Falha de conexão. Tente novamente.");
+    } finally {
+      setCheckingPlan(null);
+    }
   }
 
   if (isCandidate) {
@@ -104,19 +155,28 @@ export default function PlanosPage() {
                     Manter Grátis
                   </Link>
                 ) : (
-                  <Link href="/app/configuracoes" className="btn btn--block btn--primary">
-                    Conhecer {plan.name}
-                  </Link>
+                  <button
+                    className="btn btn--block btn--primary"
+                    disabled={checkingPlan === plan.id}
+                    onClick={() => subscribe(plan.id)}
+                  >
+                    {checkingPlan === plan.id
+                      ? "Verificando…"
+                      : `Assinar ${plan.name} — R$ ${plan.price}/mês`}
+                  </button>
                 )}
               </div>
             );
           })}
         </section>
 
+        {planFormError && <div className="app-error planos-error">{planFormError}</div>}
+
         <section className="pricing-note">
           <p>
-            Os planos pagos para candidatos serão ativados em breve. Enquanto isso, o plano Grátis
-            ja inclui perfil, currículo, candidaturas e 2 análises de IA por mês.
+            Pagamento seguro via <strong>Stripe</strong> ou modo de teste (mock) enquanto as chaves
+            reais não são configuradas. Assinatura mensal renovável; cancele quando quiser no
+            painel do candidato.
           </p>
         </section>
       </div>

@@ -3807,3 +3807,22 @@ html[data-theme="dark"] .stage-chip--hired {
 .pricing-card--current .pricing-card__name {
   color: var(--primary);
 }
+
+/* ---------- /planos: confirmação e erro ---------- */
+.planos-error,
+.planos-confirmacao {
+  margin-top: 14px;
+}
+
+.planos-confirmacao {
+  text-align: center;
+  padding: 32px;
+}
+
+.planos-confirmacao--ok h2 {
+  color: var(--success);
+}
+
+.planos-confirmacao--error h2 {
+  color: var(--danger);
+}

@@ -103,6 +103,21 @@ CREATE INDEX IF NOT EXISTS idx_payments_company ON payments(company_id);
 CREATE INDEX IF NOT EXISTS idx_payments_job ON payments(job_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 
+CREATE TABLE IF NOT EXISTS candidate_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  tier TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'BRL',
+  status TEXT NOT NULL DEFAULT 'pending',
+  stripe_payment_id TEXT,
+  started_at TEXT,
+  expires_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_candidate_subscriptions_user ON candidate_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_candidate_subscriptions_status ON candidate_subscriptions(status);
+
 CREATE TABLE IF NOT EXISTS candidate_profiles (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE REFERENCES users(id),

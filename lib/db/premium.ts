@@ -19,11 +19,95 @@ import { rowToJob, getFavoriteJobs } from "./jobs";
 export async function getCandidateTier(userId: string): Promise<CandidateTier> {
   const row = await queryOne("SELECT candidate_tier FROM users WHERE id = ?", [userId]);
   const tier = String(row?.candidate_tier ?? "free");
-  return (tier === "premium" || tier === "pro" ? tier : "free") as CandidateTier;
+  const paid = tier === "premium" || tier === "pro" ? (tier as CandidateTier) : null;
+  if (!paid) return "free";
+  // Verifica se a assinatura paga ainda está ativa (não expirada).
+  const active = await findActiveCandidateSubscription(userId);
+  if (!active) {
+    await setCandidateTier(userId, "free");
+    return "free";
+  }
+  if (active.expiresAt) {
+    const expires = new Date(active.expiresAt).getTime();
+    if (expires <= Date.now()) {
+      await execute("UPDATE candidate_subscriptions SET status = 'expired' WHERE id = ?", [active.id]);
+      await setCandidateTier(userId, "free");
+      return "free";
+    }
+  }
+  return paid;
 }
 
 export async function setCandidateTier(userId: string, tier: CandidateTier): Promise<void> {
   await execute("UPDATE users SET candidate_tier = ? WHERE id = ?", [tier, userId]);
+}
+
+/* ------------------------- Candidate subscriptions (planos pagos) ------------------------- */
+
+export async function findPendingCandidateSubscription(
+  userId: string,
+  tier: CandidateTier
+): Promise<{ id: string } | undefined> {
+  const row = await queryOne(
+    "SELECT id FROM candidate_subscriptions WHERE user_id = ? AND tier = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
+    [userId, tier]
+  );
+  return row?.id ? { id: String(row.id) } : undefined;
+}
+
+export async function findActiveCandidateSubscription(
+  userId: string
+): Promise<{ id: string; tier: CandidateTier; expiresAt: string | null } | undefined> {
+  const row = await queryOne(
+    "SELECT id, tier, expires_at FROM candidate_subscriptions WHERE user_id = ? AND status = 'active' ORDER BY expires_at DESC LIMIT 1",
+    [userId]
+  );
+  if (!row?.id) return undefined;
+  return {
+    id: String(row.id),
+    tier: (row.tier === "premium" || row.tier === "pro" ? row.tier : "free") as CandidateTier,
+    expiresAt: row.expires_at ? String(row.expires_at) : null,
+  };
+}
+
+export async function createPendingCandidateSubscription(
+  userId: string,
+  tier: CandidateTier,
+  amount: number
+): Promise<string> {
+  const id = newId("sub");
+  await execute(
+    "INSERT INTO candidate_subscriptions (id, user_id, tier, amount, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)",
+    [id, userId, tier, amount, new Date().toISOString()]
+  );
+  return id;
+}
+
+export async function activateCandidateSubscription(data: {
+  userId: string;
+  tier: CandidateTier;
+  mock: boolean;
+  stripePaymentId?: string | null;
+}): Promise<void> {
+  const now = new Date();
+  const expires = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString();
+  if (data.mock) {
+    // Modo mock: ativa a assinatura pendente mais recente para este plano.
+    await execute(
+      `UPDATE candidate_subscriptions
+       SET status = 'active', started_at = ?, expires_at = ?
+       WHERE user_id = ? AND tier = ? AND status = 'pending'`,
+      [now.toISOString(), expires, data.userId, data.tier]
+    );
+  } else {
+    await execute(
+      `UPDATE candidate_subscriptions
+       SET status = 'active', started_at = ?, expires_at = ?, stripe_payment_id = ?
+       WHERE user_id = ? AND tier = ? AND status = 'pending'`,
+      [now.toISOString(), expires, data.stripePaymentId ?? null, data.userId, data.tier]
+    );
+  }
+  await setCandidateTier(data.userId, data.tier);
 }
 
 /* ------------------------- Applications (pipeline) ------------------------- */

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, finalizePaidPlan } from "@/lib/payments";
+import { finalizeCandidatePaidPlan } from "@/lib/payments-candidate";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { getCompanyById } from "@/lib/db/company";
-import type { Plan } from "@/lib/types";
+import type { Plan, CandidateTier } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +38,8 @@ export async function POST(request: NextRequest) {
     const companyId = String(session.metadata?.companyId ?? "");
     const jobId = String(session.metadata?.jobId ?? "");
     const plan = String(session.metadata?.plan ?? "") as Plan;
+    const userId = String(session.metadata?.userId ?? "");
+    const tier = String(session.metadata?.tier ?? "") as CandidateTier;
 
     if (companyId && jobId && plan) {
       const company = await getCompanyById(companyId);
@@ -51,6 +54,19 @@ export async function POST(request: NextRequest) {
         } catch {
           // Pagamento de vaga que já foi confirmado via página de sucesso.
         }
+      }
+    }
+
+    if (userId && (tier === "premium" || tier === "pro")) {
+      try {
+        await finalizeCandidatePaidPlan({
+          userId,
+          tier,
+          mock: false,
+          stripePaymentId: session.id,
+        });
+      } catch {
+        // Pagamento de plano que já foi confirmado via página de confirmação.
       }
     }
   }
