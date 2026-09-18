@@ -31,6 +31,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return [
+      // Aliases em inglês / atalhos sem página própria → rotas reais (pt-BR).
+      { source: "/jobs", destination: "/", permanent: true },
+      { source: "/vagas", destination: "/", permanent: true },
+      { source: "/favorites", destination: "/favoritos", permanent: true },
+      { source: "/applications", destination: "/app/candidaturas", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

@@ -21,10 +21,21 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: "Não compareceu",
 };
 
+const FILTERS: Array<{ id: string; label: string }> = [
+  { id: "todas", label: "Todas" },
+  { id: "scheduled", label: "Agendadas" },
+  { id: "ai", label: "Com IA" },
+  { id: "technical", label: "Técnicas" },
+  { id: "practical", label: "Práticas" },
+  { id: "theoretical", label: "Teóricas" },
+  { id: "history", label: "Histórico" },
+];
+
 export default function InterviewsHubPage() {
   const [items, setItems] = useState<InterviewListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("todas");
 
   const load = useCallback(async () => {
     try {
@@ -45,9 +56,16 @@ export default function InterviewsHubPage() {
     load();
   }, [load]);
 
-  const scheduled = items.filter((i) => i.scheduledAt || i.status === "scheduled" || i.status === "confirmed");
-  const running = items.filter((i) => i.status === "in_progress");
-  const history = items.filter((i) => i.status === "completed" || i.status === "cancelled" || i.status === "no_show");
+  const filtered = items.filter((i) => {
+    if (filter === "todas") return true;
+    if (filter === "scheduled") return i.status === "scheduled" || i.status === "confirmed";
+    if (filter === "history") return i.status === "completed" || i.status === "cancelled" || i.status === "no_show";
+    return i.type === filter;
+  });
+
+  const scheduled = filtered.filter((i) => i.scheduledAt || i.status === "scheduled" || i.status === "confirmed");
+  const running = filtered.filter((i) => i.status === "in_progress");
+  const history = filtered.filter((i) => i.status === "completed" || i.status === "cancelled" || i.status === "no_show");
 
   return (
     <div className="interviews-page">
@@ -61,6 +79,21 @@ export default function InterviewsHubPage() {
         <Link href="/interviews/novo" className="btn btn--primary">
           Nova entrevista com IA
         </Link>
+      </div>
+
+      <div className="interviews-filters" role="tablist" aria-label="Filtrar entrevistas">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            role="tab"
+            aria-selected={filter === f.id}
+            className={`btn btn--sm ${filter === f.id ? "btn--primary" : "btn--ghost"}`}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="app-empty app-empty--error"><p>{error}</p></div>}
