@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Job } from "@/lib/jobs";
+import { flagFor, REGIONS, type JobRegion } from "@/lib/international/countries";
 import JobCard from "./JobCard";
 
 type Query = {
@@ -9,15 +10,19 @@ type Query = {
   location: string;
   type: string;
   remote: boolean;
+  region: string;
 };
+
+type RegionCount = { region: JobRegion; count: number };
 
 export default function JobExplorer() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sponsored, setSponsored] = useState<Job[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [regionCounts, setRegionCounts] = useState<RegionCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState<Query>({ q: "", location: "", type: "", remote: false });
+  const [query, setQuery] = useState<Query>({ q: "", location: "", type: "", remote: false, region: "" });
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -28,6 +33,7 @@ export default function JobExplorer() {
     if (q.location) params.set("location", q.location);
     if (q.type) params.set("type", q.type);
     if (q.remote) params.set("remote", "true");
+    if (q.region) params.set("region", q.region);
 
     setLoading(true);
     setError(null);
@@ -61,6 +67,19 @@ export default function JobExplorer() {
 
   useEffect(() => {
     let cancelled = false;
+    fetch("/api/jobs/regions", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled) setRegionCounts(json.data ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     fetch("/api/jobs/sponsored", { cache: "no-store" })
       .then((res) => res.json())
       .then((json) => {
@@ -83,14 +102,19 @@ export default function JobExplorer() {
   }
 
   function clearFilters() {
-    setQuery({ q: "", location: "", type: "", remote: false });
+    setQuery({ q: "", location: "", type: "", remote: false, region: "" });
     if (searchRef.current) searchRef.current.value = "";
   }
 
   const hasFilters = useMemo(
-    () => Boolean(query.q.trim() || query.location || query.type || query.remote),
+    () => Boolean(query.q.trim() || query.location || query.type || query.remote || query.region),
     [query]
   );
+
+  const availableRegions = useMemo(() => {
+    const counts = new Map(regionCounts.map((r) => [r.region, r.count]));
+    return REGIONS.filter((r) => counts.has(r.code));
+  }, [regionCounts]);
 
   return (
     <div className="container">
@@ -152,6 +176,27 @@ export default function JobExplorer() {
             <option value="part-time">Meio período</option>
             <option value="contract">Contrato</option>
             <option value="internship">Estágio</option>
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label className="sr-only" htmlFor="filter-region">
+            Região / País
+          </label>
+          <select
+            id="filter-region"
+            value={query.region}
+            onChange={(e) => update("region", e.target.value)}
+          >
+            <option value="">Todos os países</option>
+            {availableRegions.map((r) => {
+              const count = regionCounts.find((x) => x.region === r.code)?.count ?? 0;
+              return (
+                <option key={r.code} value={r.code}>
+                  {flagFor(r.code)} {r.label} ({count})
+                </option>
+              );
+            })}
           </select>
         </div>
 

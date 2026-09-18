@@ -4,10 +4,19 @@ import Link from "next/link";
 import type { Job } from "@/lib/jobs";
 import { useFavorites } from "@/lib/app-context";
 import { formatPostedAt, formatSalary, initials, jobTypeLabels } from "@/lib/format";
+import { flagFor, regionLabel, type JobRegion } from "@/lib/international/countries";
+
+const SOURCE_LABELS: Record<string, string> = {
+  remotive: "Remotive",
+  jsearch: "JSearch",
+  adzuna: "Adzuna",
+  devjobs: "DevJobs",
+};
 
 export default function JobCard({ job }: { job: Job }) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(job.id);
+  const sourceLabel = job.source ? (SOURCE_LABELS[job.source] ?? job.source) : null;
 
   return (
     <article className={`job-card ${job.featured ? "job-card--featured" : ""}`}>
@@ -17,6 +26,11 @@ export default function JobCard({ job }: { job: Job }) {
         </div>
         <div className="job-card__meta">
           <span className="job-type">{jobTypeLabels[job.type]}</span>
+          {sourceLabel && (
+            <span className="badge badge--source" title={`Vaga publicada via ${sourceLabel}`}>
+              {sourceLabel}
+            </span>
+          )}
           {job.featured && <span className="badge badge--featured">Destaque</span>}
         </div>
         <button
@@ -59,6 +73,12 @@ export default function JobCard({ job }: { job: Job }) {
           </svg>
           {job.location}
         </span>
+        {job.region && (
+          <span className="pill">
+            <span aria-hidden="true">{flagFor(job.region as JobRegion, job.country)}</span>{" "}
+            {regionLabel(job.region as JobRegion)}
+          </span>
+        )}
         {job.remote && (
           <span className="pill pill--remote">
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">

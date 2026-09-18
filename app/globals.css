@@ -582,6 +582,15 @@ html[data-theme="dark"] .icon-moon {
   color: var(--featured);
 }
 
+.badge--source {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: transparent;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
 .badge--remote {
   background: var(--primary-soft);
   border-color: transparent;
@@ -3593,6 +3602,50 @@ html[data-theme="dark"] .stage-chip--hired {
   gap: 18px;
 }
 
+.pdf-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border-style: dashed;
+}
+
+.pdf-upload__label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.pdf-upload__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pdf-upload__file {
+  flex: 1;
+  min-width: 220px;
+}
+
+.pdf-upload__msg {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.pdf-upload__msg--ok {
+  color: var(--success, #16a34a);
+}
+
+.resume-card__pdf {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .resume-form {
   display: flex;
   flex-direction: column;
@@ -3898,3 +3951,318 @@ html[data-theme="dark"] .stage-chip--hired {
 .subscribe-cancel-note {
   margin-top: 16px;
 }
+
+/* Fase E — entrevista por vaga */
+.interview-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.interview-timer--warn {
+  color: #fff;
+  background: #dc2626;
+  border-color: transparent;
+  animation: interview-pulse 1s ease-in-out infinite;
+}
+@keyframes interview-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.interview-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.interview-chat__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.interview-chat__q {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+.interview-chat__a {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+.interview-chat__input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.interview-chat__input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.interview-report__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.interview-score--big {
+  font-size: 2rem;
+  color: var(--primary);
+}
+.interview-report__feedback {
+  font-size: 0.98rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.interview-report__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0;
+}
+.metric__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+.metric__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.metric__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 60%, var(--success)));
+}
+.interview-report__lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.interview-report__lists h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}
+.interview-report__lists ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.interview-report__lists li {
+  margin-bottom: 4px;
+}
+
+/* Fase F — candidatura com IA */
+.wizard-steps {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0 18px;
+}
+.wizard-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wizard-step.is-active {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.wizard-step.is-done {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+.wizard-step__num {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.08);
+  font-size: 0.7rem;
+}
+.wizard-step.is-active .wizard-step__num {
+  background: rgba(255,255,255,0.2);
+}
+.resume-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.resume-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface-1);
+}
+.resume-card.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.resume-card span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.analysis-result__head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.analysis-result__lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.analysis-result__lists h5 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}
+.analysis-result__lists ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.analysis-result__lists li {
+  margin-bottom: 4px;
+}
+.consent-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.review-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.review-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.review-list li:last-child { border-bottom: 0; }
+.review-list li span { color: var(--muted); }
+.review-list li strong { text-align: right; }
+
+/* Fase G — pipeline da empresa por vaga */
+.stage-select {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+.lock-note {
+  font-size: 0.8rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 8px;
+}
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.skill-tags span {
+  font-size: 0.72rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--muted);
+}
+.text-link {
+  color: var(--primary);
+  text-decoration: underline;
+  font-size: 0.82rem;
+}
+.interview-report {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--primary);
+  background: var(--surface-2);
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+.interview-report p { margin: 4px 0; }
+.small-list {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.status-chip--muted {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+}
+.status-chip--muted:not(.status-chip) {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.kanban__col--hired {
+  background: rgba(16, 185, 129, 0.06);
+}
+.kanban__col--hired { background: color-mix(in srgb, var(--success) 7%, var(--bg)); }

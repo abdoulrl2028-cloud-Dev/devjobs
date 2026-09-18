@@ -1,11 +1,62 @@
 import { queryAll, queryOne, execute } from "./conn";
 import { newId } from "../crypto";
+import { createUser } from "./users";
 import type {
   Company,
   Subscription,
   Payment,
   Plan,
 } from "../types";
+
+const FEED_COMPANY_EMAIL = "global@devjobs.com";
+const FEED_COMPANY_ID = "co_global_feed";
+const FEED_COMPANY_NAME = "DevJobs Global";
+
+// Empresa-observatório que "dona" as vagas vindas de feeds internacionais.
+// Cada vaga externa exibe o empregador real via jobs.source_company.
+export async function getFeedCompany(): Promise<Company | undefined> {
+  const row = await queryOne("SELECT * FROM companies WHERE id = ?", [FEED_COMPANY_ID]);
+  return row ? toCompany(row) : undefined;
+}
+
+let feedCompanyPromise: Promise<string> | null = null;
+export function ensureFeedCompany(): Promise<string> {
+  if (feedCompanyPromise) return feedCompanyPromise;
+  feedCompanyPromise = (async () => {
+    const existing = await getFeedCompany();
+    if (existing) return existing.id;
+
+    let userId: string;
+    const globalUser = await queryOne("SELECT id FROM users WHERE email = ?", [FEED_COMPANY_EMAIL]);
+    if (globalUser?.id) {
+      userId = String(globalUser.id);
+    } else {
+      const user = await createUser({
+        email: FEED_COMPANY_EMAIL,
+        password: newId("pwd"),
+        role: "company",
+        name: FEED_COMPANY_NAME,
+      });
+      userId = user.id;
+    }
+
+    const createdAt = new Date().toISOString();
+    await execute(
+      `INSERT INTO companies (id, user_id, name, logo_color, logo_url, website, description, created_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, ?, ?)`,
+      [
+        FEED_COMPANY_ID,
+        userId,
+        FEED_COMPANY_NAME,
+        "#2563eb",
+        "Vagas de empregadores parceiros, agregadas de APIs e feeds oficiais. Candidatura via canais autorizados.",
+        createdAt,
+      ]
+    );
+    return FEED_COMPANY_ID;
+  })();
+  return feedCompanyPromise;
+}
 
 function toCompany(row: Record<string, unknown>): Company {
   return {

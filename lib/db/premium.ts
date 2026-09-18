@@ -125,6 +125,8 @@ export async function listApplicationsForCandidateFull(candidateId: string): Pro
   const rows = await queryAll(
     `SELECT a.id AS app_id, a.job_id, a.candidate_id, a.status AS app_status,
             a.stage AS app_stage, a.notes AS app_notes, a.applied_at,
+            a.resume_id AS app_resume_id, a.analysis_score AS app_analysis_score,
+            a.interview_id AS app_interview_id, a.applied_via AS app_via,
             j.*, c.name AS company_name, c.logo_color AS company_logo_color,
             c.website AS company_website, COALESCE(j.logo_color, c.logo_color) AS job_logo_color
      FROM applications a
@@ -141,6 +143,13 @@ export async function listApplicationsForCandidateFull(candidateId: string): Pro
     status: String(row.app_status ?? "applied") as Application["status"],
     stage: (row.app_stage ?? "applied") as ApplicationStage,
     notes: (row.app_notes as string | null) ?? null,
+    resumeId: (row.app_resume_id as string | null) ?? null,
+    analysisScore:
+      row.app_analysis_score !== null && row.app_analysis_score !== undefined
+        ? Number(row.app_analysis_score)
+        : null,
+    interviewId: (row.app_interview_id as string | null) ?? null,
+    appliedVia: (row.app_via === "ai" ? "ai" : "manual") as Application["appliedVia"],
     appliedAt: String(row.applied_at),
     job: row.job_id ? rowToJob(row) : undefined,
   }));
@@ -220,9 +229,58 @@ function toResume(row: Record<string, unknown>): Resume {
     userId: String(row.user_id),
     title: String(row.title),
     data,
+    filename: row.filename ? String(row.filename) : null,
+    fileMime: row.file_mime ? String(row.file_mime) : null,
+    fileSize: row.file_size != null ? Number(row.file_size) : null,
+    hasFile: Boolean(row.file_data),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
+}
+
+export async function setResumeFile(
+  id: string,
+  userId: string,
+  file: { filename: string; mime: string; size: number; data: string }
+): Promise<void> {
+  await execute(
+    "UPDATE resumes SET filename = ?, file_mime = ?, file_size = ?, file_data = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+    [file.filename, file.mime, file.size, file.data, new Date().toISOString(), id, userId]
+  );
+}
+
+export async function getResumeFile(id: string, userId: string) {
+  const row = await queryOne(
+    "SELECT id, filename, file_mime, file_size, file_data FROM resumes WHERE id = ? AND user_id = ?",
+    [id, userId]
+  );
+  if (!row || !row.file_data) return undefined;
+  return {
+    id: String(row.id),
+    filename: String(row.filename ?? ""),
+    mime: String(row.file_mime ?? "application/pdf"),
+    size: Number(row.file_size ?? 0),
+    data: String(row.file_data),
+  };
+}
+
+export async function createResumeAnalysis(input: {
+  userId: string;
+  resumeId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  rawText: string;
+  extracted: Record<string, unknown>;
+  score: number | null;
+}): Promise<void> {
+  const id = newId("ra");
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO resume_analyses (id, user_id, resume_id, filename, mime, size, raw_text, approach, extracted, score, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'deterministic', ?, ?, ?)`,
+    [id, input.userId, input.resumeId, input.filename, input.mime, input.size, input.rawText, JSON.stringify(input.extracted), input.score, now]
+  );
 }
 
 /* ------------------------- Alerts ------------------------- */
@@ -421,13 +479,15 @@ export async function createInterview(
     answers: string[];
     score: number;
     metrics: Interview["metrics"];
+    status?: string;
   }
 ): Promise<Interview> {
   const id = newId("int");
   const now = new Date().toISOString();
+  const status = input.status ?? "completed";
   await execute(
     `INSERT INTO interviews (id, user_id, track, job_id, topic, questions, answers, score, metrics, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
@@ -438,6 +498,7 @@ export async function createInterview(
       JSON.stringify(input.answers),
       input.score,
       JSON.stringify(input.metrics),
+      status,
       now,
     ]
   );
@@ -450,9 +511,64 @@ export async function createInterview(
     answers: input.answers,
     score: input.score,
     metrics: input.metrics,
-    status: "completed",
+    status: status as "in_progress" | "completed",
     createdAt: now,
   };
+}
+
+export async function updateInterviewCompletion(
+  id: string,
+  userId: string,
+  input: { answers: string[]; score: number; metrics: Interview["metrics"] }
+): Promise<void> {
+  await execute(
+    "UPDATE interviews SET answers = ?, score = ?, metrics = ?, status = 'completed' WHERE id = ? AND user_id = ?",
+    [
+      JSON.stringify(input.answers),
+      input.score,
+      JSON.stringify(input.metrics),
+      id,
+      userId,
+    ]
+  );
+}
+
+export async function findInterviewByJob(userId: string, jobId: string): Promise<Interview | undefined> {
+  const row = await queryOne(
+    "SELECT * FROM interviews WHERE user_id = ? AND job_id = ? ORDER BY created_at DESC LIMIT 1",
+    [userId, jobId]
+  );
+  return row ? toInterview(row) : undefined;
+}
+
+export async function createInterviewReport(input: {
+  interviewId: string;
+  userId: string;
+  jobId?: string | null;
+  scores: Record<string, number>;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  feedback: string;
+}): Promise<void> {
+  const id = newId("irpt");
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO interview_reports (id, interview_id, user_id, job_id, scores, strengths, weaknesses, recommendations, feedback, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.interviewId,
+      input.userId,
+      input.jobId ?? null,
+      JSON.stringify(input.scores),
+      JSON.stringify(input.strengths),
+      JSON.stringify(input.weaknesses),
+      JSON.stringify(input.recommendations),
+      input.feedback ?? "",
+      now,
+    ]
+  );
 }
 
 function toInterview(row: Record<string, unknown>): Interview {
@@ -489,7 +605,7 @@ function toInterview(row: Record<string, unknown>): Interview {
     answers,
     score: row.score !== null && row.score !== undefined ? Number(row.score) : null,
     metrics,
-    status: "completed",
+    status: row.status === "in_progress" ? "in_progress" : "completed",
     createdAt: String(row.created_at),
   };
 }
@@ -519,7 +635,7 @@ export async function candidateStats(userId: string): Promise<{
   applications: number;
   favorites: number;
   appliedApplications: number;
-  testApplications: number;
+  cvReviewApplications: number;
   interviewApplications: number;
   offerApplications: number;
   hiredApplications: number;
@@ -551,7 +667,7 @@ export async function candidateStats(userId: string): Promise<{
     applications: apps.length,
     favorites: favs.length,
     appliedApplications: byStage("applied"),
-    testApplications: byStage("test"),
+    cvReviewApplications: byStage("cv_review"),
     interviewApplications: byStage("interview"),
     offerApplications: byStage("offer"),
     hiredApplications: byStage("hired"),

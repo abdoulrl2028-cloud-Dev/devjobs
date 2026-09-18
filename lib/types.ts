@@ -6,10 +6,13 @@ export type Plan = "free" | "destaque" | "pro" | "empresa";
 // o campo DB é users.candidate_tier.
 export type CandidateTier = "free" | "premium" | "pro";
 
-// Etapas do pipeline/kanban de candidaturas.
+// Etapas do pipeline/kanban de candidaturas (fluxo empresa).
+// applied → cv_review → ai_interview → company_review → interview → offer → hired
 export const APPLICATION_STAGES = [
   "applied", // Candidatura enviada
-  "test", // Teste técnico
+  "cv_review", // Revisão de CV
+  "ai_interview", // Entrevista com IA
+  "company_review", // Avaliação da empresa
   "interview", // Entrevista
   "offer", // Oferta
   "hired", // Contratado
@@ -17,6 +20,29 @@ export const APPLICATION_STAGES = [
 ] as const;
 
 export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
+
+// Estágios finais (não avançam no pipeline).
+export const TERMINAL_STAGES: Record<ApplicationStage, boolean> = {
+  applied: false,
+  cv_review: false,
+  ai_interview: false,
+  company_review: false,
+  interview: false,
+  offer: false,
+  hired: true,
+  rejected: true,
+};
+
+export const STAGE_LABELS: Record<string, string> = {
+  applied: "Aplicado",
+  cv_review: "Revisão de CV",
+  ai_interview: "Entrevista com IA",
+  company_review: "Avaliação da empresa",
+  interview: "Entrevista",
+  offer: "Oferta",
+  hired: "Contratado",
+  rejected: "Recusada",
+};
 
 export type InterviewTrack =
   | "frontend"
@@ -92,6 +118,13 @@ export type DbJob = {
   clicks: number;
   expiresAt: string | null;
   createdAt: string;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  source: string | null;
+  externalId: string | null;
+  sourceCompany: string | null;
+  postedAtRef: string | null;
 };
 
 export type Job = {
@@ -122,6 +155,13 @@ export type Job = {
   expiresAt: string | null;
   createdAt: string;
   postedAt: string;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  source: string | null;
+  externalId: string | null;
+  sourceCompany: string | null;
+  postedAtRef: string | null;
 };
 
 export type Application = {
@@ -131,6 +171,10 @@ export type Application = {
   status: "applied" | "viewed" | "rejected" | "accepted";
   stage: ApplicationStage;
   notes: string | null;
+  resumeId: string | null;
+  analysisScore: number | null;
+  interviewId: string | null;
+  appliedVia: "manual" | "ai";
   appliedAt: string;
   job?: Job;
 };
@@ -284,6 +328,10 @@ export type Resume = {
   userId: string;
   title: string;
   data: ResumeData;
+  filename?: string | null;
+  fileMime?: string | null;
+  fileSize?: number | null;
+  hasFile?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -330,7 +378,7 @@ export type Interview = {
     experience: number;
     problemSolving: number;
   };
-  status: "completed";
+  status: "in_progress" | "completed";
   createdAt: string;
 };
 

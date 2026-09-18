@@ -3,12 +3,20 @@ import { notFound } from "next/navigation";
 import { getJobById, recordJobView } from "@/lib/db/jobs";
 import { ensureDatabaseReady } from "@/lib/db/init";
 import { formatPostedAt, formatSalary, initials, jobTypeLabels } from "@/lib/format";
+import { flagFor, regionLabel, type JobRegion } from "@/lib/international/countries";
 import FavoriteButton from "@/components/FavoriteButton";
 import ApplyButton from "@/components/ApplyButton";
 import { jsonLd, siteUrl } from "@/lib/seo";
 import type { Job } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const SOURCE_LABELS: Record<string, string> = {
+  remotive: "Remotive",
+  jsearch: "JSearch",
+  adzuna: "Adzuna",
+  devjobs: "DevJobs",
+};
 
 const EMPLOYMENT_TYPES = {
   "full-time": "FULL_TIME",
@@ -92,9 +100,27 @@ function jobPostingLd(job: Job) {
 }
 
 function DetailBadges({ job }: { job: Job }) {
+  const sourceLabel = job.source ? (SOURCE_LABELS[job.source] ?? job.source) : null;
   return (
     <div className="detail-badges">
       <span className="badge">{jobTypeLabels[job.type]}</span>
+      {job.region && (
+        <span className="badge">
+          <span aria-hidden="true">{flagFor(job.region as JobRegion, job.country)}</span>{" "}
+          {regionLabel(job.region as JobRegion)}
+        </span>
+      )}
+      {sourceLabel && (
+        <a
+          className="badge badge--source"
+          href={job.applyUrl || undefined}
+          target={job.applyUrl ? "_blank" : undefined}
+          rel={job.applyUrl ? "noopener noreferrer" : undefined}
+          title={`Vaga publicada via ${sourceLabel}`}
+        >
+          {sourceLabel}
+        </a>
+      )}
       {job.sponsored && <span className="badge badge--sponsored">Patrocinado</span>}
       {job.featured && <span className="badge badge--featured">Destaque</span>}
       {job.remote && <span className="badge badge--remote">Remoto</span>}
@@ -142,6 +168,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </div>
           <div className="detail-actions">
             <FavoriteButton jobId={job.id} />
+            <Link href={`/app/entrevistas/play?jobId=${encodeURIComponent(job.id)}`} className="btn btn--ghost">
+              Entrevista simulada
+            </Link>
+            <Link href={`/app/candidatar?jobId=${encodeURIComponent(job.id)}`} className="btn btn--primary">
+              Candidatar-se com IA
+            </Link>
             <ApplyButton jobId={job.id} />
           </div>
         </header>
@@ -195,10 +227,49 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 <dd>{formatSalary(job.salary)}</dd>
                 <dt>Localização</dt>
                 <dd>{job.location}</dd>
+                {job.city && (
+                  <>
+                    <dt>Cidade</dt>
+                    <dd>
+                      {job.region ? (
+                        <>
+                          <span aria-hidden="true">
+                            {flagFor(job.region as JobRegion, job.country)}
+                          </span>{" "}
+                          {job.city}
+                        </>
+                      ) : (
+                        job.city
+                      )}
+                    </dd>
+                  </>
+                )}
+                {job.country && (
+                  <>
+                    <dt>País</dt>
+                    <dd>{job.country}</dd>
+                  </>
+                )}
                 <dt>Modelo</dt>
                 <dd>{job.remote ? "Remoto" : "Presencial"}</dd>
                 <dt>Publicada</dt>
                 <dd>{formatPostedAt(job.postedAt)}</dd>
+                {job.source && (
+                  <>
+                    <dt>Fonte</dt>
+                    <dd>{SOURCE_LABELS[job.source] ?? job.source}</dd>
+                  </>
+                )}
+                {job.applyUrl && (
+                  <>
+                    <dt>Vaga original</dt>
+                    <dd>
+                      <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
+                        Ver anúncio da fonte ↗
+                      </a>
+                    </dd>
+                  </>
+                )}
                 {job.quantity > 1 && (
                   <>
                     <dt>Vagas disponíveis</dt>

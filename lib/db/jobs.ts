@@ -14,6 +14,8 @@ export type JobFilter = {
   location?: string | null;
   type?: string | null;
   remote?: string | null;
+  region?: string | null;
+  source?: string | null;
   include?: JobStatus[];
 };
 
@@ -58,10 +60,17 @@ export function rowToJob(row: Record<string, unknown>): Job {
     clicks: Number(row.clicks),
     expiresAt: (row.expires_at as string | null) ?? null,
     createdAt: String(row.created_at),
-    company: String(row.company_name ?? ""),
+    company: String(row.source_company ?? row.company_name ?? ""),
     logoColor: String(row.job_logo_color ?? row.company_logo_color ?? "#6d28d9"),
     companyUrl: (row.company_website as string | null) ?? null,
-    postedAt: String(row.created_at),
+    postedAt: String(row.posted_at_ref ?? row.created_at),
+    country: (row.country as string | null) ?? null,
+    city: (row.city as string | null) ?? null,
+    region: (row.region as string | null) ?? null,
+    source: (row.source as string | null) ?? null,
+    externalId: (row.external_id as string | null) ?? null,
+    sourceCompany: (row.source_company as string | null) ?? null,
+    postedAtRef: (row.posted_at_ref as string | null) ?? null,
   };
 }
 
@@ -104,6 +113,14 @@ export async function searchJobs(filter: JobFilter): Promise<Job[]> {
   }
   if (filter.remote === "false") {
     where.push("j.remote = 0");
+  }
+  if (filter.region) {
+    where.push("COALESCE(NULLIF(j.region, ''), 'other') = ?");
+    params.push(filter.region);
+  }
+  if (filter.source) {
+    where.push("j.source = ?");
+    params.push(filter.source);
   }
 
   // Sem patrocinadas na listagem principal — elas aparecem na área de anúncios.
@@ -156,6 +173,15 @@ export type NewJobInput = {
   responsibilities: string[];
   requirements: string[];
   benefits: string[];
+  country?: string | null;
+  city?: string | null;
+  region?: string | null;
+  source?: string | null;
+  externalId?: string | null;
+  sourceCompany?: string | null;
+  postedAtRef?: string | null;
+  expiresAt?: string | null;
+  logoColor?: string | null;
 };
 
 const PLAN_DURATION_DAYS: Record<Plan, number> = {
@@ -169,7 +195,7 @@ export async function createJob(input: NewJobInput): Promise<DbJob> {
   const id = newId("job");
   const now = new Date();
   const createdAt = now.toISOString();
-  const expiresAt = new Date(now.getTime() + PLAN_DURATION_DAYS[input.plan] * 86400000).toISOString();
+  const expiresAt = input.expiresAt ?? new Date(now.getTime() + PLAN_DURATION_DAYS[input.plan] * 86400000).toISOString();
   const currency = input.currency ?? "BRL";
   const salaryMin = input.salaryMin ?? null;
   const salaryMax = input.salaryMax ?? null;
@@ -180,8 +206,9 @@ export async function createJob(input: NewJobInput): Promise<DbJob> {
       salary_min, salary_max, currency, tags, quantity, contact_email, apply_url,
       status, featured, sponsored, plan,
       responsibilities, requirements, benefits,
-      expires_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      country, city, region, source, external_id, source_company, posted_at_ref,
+      logo_color, expires_at, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.companyId,
@@ -204,6 +231,14 @@ export async function createJob(input: NewJobInput): Promise<DbJob> {
       JSON.stringify(input.responsibilities),
       JSON.stringify(input.requirements),
       JSON.stringify(input.benefits),
+      input.country ?? null,
+      input.city ?? null,
+      input.region ?? null,
+      input.source ?? null,
+      input.externalId ?? null,
+      input.sourceCompany ?? null,
+      input.postedAtRef ?? null,
+      input.logoColor ?? null,
       expiresAt,
       createdAt,
     ]
@@ -235,6 +270,13 @@ export async function createJob(input: NewJobInput): Promise<DbJob> {
     clicks: 0,
     expiresAt,
     createdAt,
+    country: input.country ?? null,
+    city: input.city ?? null,
+    region: input.region ?? null,
+    source: input.source ?? null,
+    externalId: input.externalId ?? null,
+    sourceCompany: input.sourceCompany ?? null,
+    postedAtRef: input.postedAtRef ?? null,
   };
 }
 

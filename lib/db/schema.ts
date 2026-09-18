@@ -61,7 +61,14 @@ CREATE TABLE IF NOT EXISTS jobs (
   views INTEGER NOT NULL DEFAULT 0,
   clicks INTEGER NOT NULL DEFAULT 0,
   expires_at TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  country TEXT,
+  city TEXT,
+  region TEXT,
+  source TEXT,
+  external_id TEXT,
+  source_company TEXT,
+  posted_at_ref TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company_id);
@@ -230,6 +237,93 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ai_analyses_user ON ai_analyses(user_id);
+
+CREATE TABLE IF NOT EXISTS realtime_events (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  type TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_events_user ON realtime_events(user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS email_events (
+  id TEXT PRIMARY KEY,
+  to_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  template TEXT,
+  status TEXT NOT NULL DEFAULT 'sandbox',
+  provider TEXT DEFAULT 'resend',
+  message_id TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_email_events_to ON email_events(to_email, created_at);
+
+CREATE TABLE IF NOT EXISTS whatsapp_events (
+  id TEXT PRIMARY KEY,
+  to_number TEXT NOT NULL,
+  template TEXT,
+  status TEXT NOT NULL DEFAULT 'sandbox',
+  provider TEXT DEFAULT 'twilio',
+  message_sid TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_events_to ON whatsapp_events(to_number, created_at);
+
+CREATE TABLE IF NOT EXISTS consents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  type TEXT NOT NULL,
+  target TEXT,
+  granted INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_consents_user_type_target ON consents(user_id, type, target);
+
+CREATE TABLE IF NOT EXISTS resume_analyses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  resume_id TEXT,
+  filename TEXT,
+  mime TEXT,
+  size INTEGER,
+  raw_text TEXT,
+  approach TEXT DEFAULT 'deterministic',
+  extracted TEXT NOT NULL DEFAULT '{}',
+  score INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_resume_analyses_user ON resume_analyses(user_id);
+
+CREATE TABLE IF NOT EXISTS interview_reports (
+  id TEXT PRIMARY KEY,
+  interview_id TEXT NOT NULL REFERENCES interviews(id),
+  user_id TEXT NOT NULL REFERENCES users(id),
+  job_id TEXT,
+  scores TEXT NOT NULL DEFAULT '{}',
+  strengths TEXT NOT NULL DEFAULT '[]',
+  weaknesses TEXT NOT NULL DEFAULT '[]',
+  recommendations TEXT NOT NULL DEFAULT '[]',
+  feedback TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interview_reports_user ON interview_reports(user_id);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id TEXT PRIMARY KEY,
+  application_id TEXT REFERENCES applications(id),
+  sender_id TEXT NOT NULL REFERENCES users(id),
+  recipient_id TEXT NOT NULL REFERENCES users(id),
+  body TEXT NOT NULL,
+  channel TEXT DEFAULT 'inapp',
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_messages_application ON messages(application_id);
+CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id, read);
 `;
 
 export async function migrateDatabase(): Promise<void> {

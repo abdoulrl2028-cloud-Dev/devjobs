@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
   const type = clamp(params.get("type"), 20);
   const remote = params.get("remote");
   const location = clamp(params.get("location"), 60);
+  const region = clamp(params.get("region"), 20);
+  const source = clamp(params.get("source"), 20);
 
   if (type && !ALLOWED_TYPES.has(type as JobType)) {
     return NextResponse.json({ error: "Tipo de vaga inválido" }, { status: 400 });
@@ -33,6 +35,8 @@ export async function GET(request: NextRequest) {
     location,
     type,
     remote,
+    region,
+    source,
   };
 
   const jobs = await searchJobs(filter);

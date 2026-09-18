@@ -63,6 +63,64 @@ async function applyIncrementalMigrations(): Promise<void> {
         // Coluna já existente.
       }
     },
+    // jobs internacionais (feed externo): país, cidade, região, fonte, id externo,
+    // empregador de origem e data de publicação da fonte.
+    async () => {
+      const columns = [
+        "country TEXT",
+        "city TEXT",
+        "region TEXT",
+        "source TEXT",
+        "external_id TEXT",
+        "source_company TEXT",
+        "posted_at_ref TEXT",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE jobs ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+      // Índices só são criados após a coluna existir (a tabela já existia em
+      // bases legadas; migrar antes de indexar evita erro de coluna ausente).
+      await execute("CREATE INDEX IF NOT EXISTS idx_jobs_country ON jobs(country)");
+      await execute("CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source)");
+      await execute("CREATE INDEX IF NOT EXISTS idx_jobs_external ON jobs(source, external_id)");
+    },
+    // resumes: arquivo PDF anexado (currículo) para download pela empresa.
+    async () => {
+      const columns = [
+        "filename TEXT",
+        "file_mime TEXT",
+        "file_size INTEGER",
+        "file_data TEXT",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE resumes ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+    },
+    // applications: candidatura com IA (currículo usado, score da análise,
+    // entrevista por vaga e origem da candidatura).
+    async () => {
+      const columns = [
+        "resume_id TEXT",
+        "analysis_score INTEGER",
+        "interview_id TEXT",
+        "applied_via TEXT DEFAULT 'manual'",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE applications ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+    },
   ];
   for (const migration of migrations) {
     await migration();

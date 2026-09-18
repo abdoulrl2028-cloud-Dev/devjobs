@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { INTERVIEW_TRACK_LABELS, type Interview, type InterviewTrack } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { INTERVIEW_TRACK_LABELS, type Interview, type InterviewTrack, type Resume } from "@/lib/types";
 import { TRACK_QUESTIONS, analyzeAnswer, trackFeedback } from "@/lib/interview";
 
 type InterviewItem = Interview;
@@ -18,6 +19,12 @@ export default function EntrevistasPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
+  const [jobOptions, setJobOptions] = useState<Array<{ id: string; title: string }>>([]);
+  const [jobId, setJobId] = useState("");
+  const [resumeId, setResumeId] = useState("");
+  const [resumeOptions, setResumeOptions] = useState<Resume[]>([]);
+  const [startingJob, setStartingJob] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/me/interviews", { cache: "no-store" });
@@ -29,7 +36,35 @@ export default function EntrevistasPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/jobs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setJobOptions((j.data ?? []).slice(0, 30).map((x: { id: string; title: string }) => ({ id: x.id, title: x.title }))))
+      .catch(() => undefined);
+    fetch("/api/me/resumes", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setResumeOptions(j.data?.items ?? []))
+      .catch(() => undefined);
   }, [load]);
+
+  const startJobInterview = async () => {
+    if (!jobId) return;
+    setStartingJob(true);
+    try {
+      const res = await fetch("/api/me/interviews/job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", jobId, resumeId: resumeId || undefined }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        window.alert(json.error ?? "Não foi possível iniciar.");
+        return;
+      }
+      router.push(`/app/entrevistas/play?jobId=${encodeURIComponent(jobId)}${resumeId ? `&resumeId=${encodeURIComponent(resumeId)}` : ""}`);
+    } finally {
+      setStartingJob(false);
+    }
+  };
 
   const questions = TRACK_QUESTIONS[track].slice(0, 4);
   const current = questions[step];
@@ -106,6 +141,40 @@ export default function EntrevistasPage() {
 
       {!active ? (
         <>
+          <div className="app-card">
+            <h3>Entrevista por vaga</h3>
+            <p className="app-hint">
+              Responda perguntas específicas de uma vaga real — incluindo lacunas identificadas no seu currículo — e receba um relatório de desempenho.
+            </p>
+            <div className="form-row form-row--split">
+              <label>
+                Vaga
+                <select value={jobId} onChange={(e) => setJobId(e.target.value)}>
+                  <option value="">Selecione uma vaga…</option>
+                  {jobOptions.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Currículo (opcional)
+                <select value={resumeId} onChange={(e) => setResumeId(e.target.value)}>
+                  <option value="">Nenhum</option>
+                  {resumeOptions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <button className="btn btn--primary" onClick={startJobInterview} disabled={!jobId || startingJob}>
+              {startingJob ? "Preparando…" : "Iniciar entrevista por vaga"}
+            </button>
+          </div>
+
           <div className="app-card">
             <h3>Começar nova entrevista</h3>
             <div className="track-picker">

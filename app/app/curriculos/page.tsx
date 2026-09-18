@@ -33,6 +33,8 @@ export default function CurriculosPage() {
   const [skillText, setSkillText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/me/resumes", { cache: "no-store" });
@@ -170,6 +172,52 @@ export default function CurriculosPage() {
   const removeProj = (i: number) =>
     setData((prev) => ({ ...prev, projects: (prev.projects ?? []).filter((_, idx) => idx !== i) }));
 
+  const importPdf = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const fileInput = (e.currentTarget as HTMLFormElement).elements.namedItem("pdf") as HTMLInputElement;
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setUploadMsg({ ok: false, text: "O currículo deve ser um arquivo PDF." });
+      return;
+    }
+    setUploading(true);
+    setUploadMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/me/resumes/upload", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        setUploadMsg({ ok: false, text: json.error ?? "Não foi possível importar o PDF." });
+      } else {
+        setUploadMsg({ ok: true, text: json.data?.message ?? "Currículo importado!" });
+        const created = json.data?.item;
+        await load();
+        if (created) {
+          setViewing(null);
+          setEditing(created);
+          setTitle(created.title);
+          setData(JSON.parse(JSON.stringify(created.data)));
+        }
+        fileInput.value = "";
+      }
+    } catch {
+      setUploadMsg({ ok: false, text: "Erro de conexão ao importar o PDF." });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadPdf = (r: ResumeItem) => {
+    const a = document.createElement("a");
+    a.href = `/api/me/resumes/${r.id}/file`;
+    a.download = r.filename ?? "curriculo.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   return (
     <div className="resumes-page">
       <div className="page-head">
@@ -182,6 +230,30 @@ export default function CurriculosPage() {
         </button>
       </div>
 
+      <form className="app-card pdf-upload" onSubmit={importPdf}>
+        <label className="pdf-upload__label" htmlFor="pdf-file">
+          Importar currículo em PDF
+        </label>
+        <div className="pdf-upload__row">
+          <input
+            id="pdf-file"
+            name="pdf"
+            type="file"
+            accept="application/pdf"
+            disabled={uploading}
+            className="pdf-upload__file"
+          />
+          <button type="submit" className="btn btn--ghost" disabled={uploading}>
+            {uploading ? "Extraindo dados…" : "Enviar PDF"}
+          </button>
+        </div>
+        {uploadMsg && (
+          <p className={uploadMsg.ok ? "pdf-upload__msg pdf-upload__msg--ok" : "pdf-upload__msg"}>
+            {uploadMsg.text}
+          </p>
+        )}
+      </form>
+
       {viewing && (
         <div className="app-card resume-preview">
           <div className="resume-preview__head">
@@ -190,6 +262,11 @@ export default function CurriculosPage() {
               <p className="resume-preview__headline">{viewing.data.headline}</p>
             </div>
             <div className="resume-preview__actions">
+              {viewing.hasFile && (
+                <button className="btn btn--ghost btn--sm" onClick={() => downloadPdf(viewing)}>
+                  Baixar PDF
+                </button>
+              )}
               <button className="btn btn--ghost btn--sm" onClick={() => window.print()}>
                 🖨 Imprimir
               </button>
@@ -456,6 +533,7 @@ export default function CurriculosPage() {
               {r.data.headline && <p className="resume-card__headline">{r.data.headline}</p>}
               <div className="resume-card__meta">
                 <span>Atualizado em {new Date(r.updatedAt).toLocaleDateString("pt-BR")}</span>
+                {r.hasFile && <span className="resume-card__pdf">PDF salvo</span>}
               </div>
               <div className="resume-card__actions">
                 <button
@@ -467,6 +545,17 @@ export default function CurriculosPage() {
                 >
                   Ver
                 </button>
+                {r.hasFile && (
+                  <button
+                    className="btn btn--ghost btn--sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadPdf(r);
+                    }}
+                  >
+                    PDF
+                  </button>
+                )}
                 <button
                   className="btn btn--ghost btn--sm"
                   onClick={(e) => {

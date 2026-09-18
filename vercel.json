@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/jobs-ingest",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/jobs-expire",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

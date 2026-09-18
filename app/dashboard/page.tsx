@@ -315,6 +315,9 @@ export default function DashboardPage() {
                       >
                         Excluir
                       </button>
+                      <Link href={`/dashboard/vagas/${job.id}`} className="btn btn--primary btn--xs">
+                        Candidatos
+                      </Link>
                     </div>
                   </td>
                 </tr>

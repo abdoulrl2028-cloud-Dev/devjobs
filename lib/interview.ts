@@ -123,3 +123,83 @@ export function trackFeedback(score: number): { label: string; advice: string } 
   if (score >= 40) return { label: "Regular", advice: "Cite termos técnicos da área e detalhe mais a solução proposta." };
   return { label: "Precisa melhorar", advice: "Estude o tema e pratique respostas estruturadas (contexto → solução → resultado)." };
 }
+
+export type JobInterviewReport = {
+  score: number;
+  metrics: {
+    technical: number;
+    communication: number;
+    clarity: number;
+    experience: number;
+    problemSolving: number;
+  };
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  feedback: string;
+};
+
+const EXAMPLE_VERBS = /\b(utilizei|implementei|criei|desenvolvi|projeto|resolvi|construi|construí|ajudei|liderei|automatizei)\b/i;
+const STRUCTURE_WORDS = /\b(primeiro|primeiramente|depois|em seguida|então|por fim|por exemplo|etapas|passos|analisei|avaliei)\b/i;
+const SOLUTION_WORDS = /\b(solucao|solução|resultado|impacto|otimiza|reduzi|melhorei|recomendei|comparacao|comparacão)\b/i;
+
+function clampPct(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+export function gradeJobInterview(
+  track: InterviewTrack,
+  questions: string[],
+  answers: string[]
+): JobInterviewReport {
+  const perQuestion = questions.map((q, i) => analyzeAnswer(track, q, answers[i] ?? ""));
+
+  const technical = perQuestion.reduce((a, p) => a + p.score, 0) / Math.max(1, perQuestion.length);
+  const wordCounts = answers.map((a) => a.trim().split(/\s+/).filter(Boolean).length);
+  const communication =
+    wordCounts.reduce((a, c) => a + (c >= 30 ? 100 : c >= 15 ? 70 : c >= 5 ? 50 : 25), 0) /
+    Math.max(1, wordCounts.length);
+  const structureCount = answers.filter((a) => STRUCTURE_WORDS.test(a)).length;
+  const clarity = (structureCount / Math.max(1, answers.length)) * 100;
+  const experience =
+    answers.reduce((a, t) => a + (EXAMPLE_VERBS.test(t) ? 1 : 0), 0) / Math.max(1, answers.length) * 100;
+  const problemSolving =
+    answers.reduce((a, t) => a + (SOLUTION_WORDS.test(t) ? 1 : 0), 0) / Math.max(1, answers.length) * 100;
+
+  const score = Math.round(technical * 0.45 + communication * 0.2 + clarity * 0.12 + experience * 0.12 + problemSolving * 0.11);
+
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+  perQuestion.forEach((p, i) => {
+    if (answers[i]?.trim() && p.score >= 70) strengths.push(`Boa resposta: “${questions[i].slice(0, 60)}…”`);
+    if (answers[i]?.trim() && p.score < 50) weaknesses.push(`Precisa melhorar: “${questions[i].slice(0, 60)}…”`);
+  });
+  if (strengths.length === 0 && technical >= 60) strengths.push("Respostas tecnicamente consistentes com a vaga.");
+  if (weaknesses.length === 0 && technical < 45) weaknesses.push("Cobertura técnica abaixo do esperado para esta vaga.");
+
+  const recommendations: string[] = [];
+  if (technical < 60) recommendations.push("Revise os fundamentos e termos técnicos citados na descrição da vaga.");
+  if (communication < 60) recommendations.push("Responda de forma mais completa: contexto → solução → resultado.");
+  if (clarity < 50) recommendations.push("Estruture a resposta em etapas e use conectores (“primeiro…, depois…, por fim…”).");
+  if (experience < 50) recommendations.push("Traga exemplos reais de projetos, com seu papel e o impacto gerado.");
+
+  const label = trackFeedback(score);
+  const feedback = `${label.label}. ${label.advice}${
+    recommendations.length ? ` ${recommendations[0]}` : ""
+  }`;
+
+  return {
+    score: clampPct(score),
+    metrics: {
+      technical: clampPct(technical),
+      communication: clampPct(communication),
+      clarity: clampPct(clarity),
+      experience: clampPct(experience),
+      problemSolving: clampPct(problemSolving),
+    },
+    strengths: strengths.slice(0, 3),
+    weaknesses: weaknesses.slice(0, 3),
+    recommendations: recommendations.slice(0, 3),
+    feedback,
+  };
+}
