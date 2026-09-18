@@ -26,7 +26,7 @@ const FILTERS: Array<{ id: string; label: string }> = [
   { id: "scheduled", label: "Agendadas" },
   { id: "ai", label: "Com IA" },
   { id: "technical", label: "Técnicas" },
-  { id: "practical", label: "Práticas" },
+  { id: "practical", label: "Desafios práticos" },
   { id: "theoretical", label: "Teóricas" },
   { id: "history", label: "Histórico" },
 ];
@@ -55,6 +55,11 @@ export default function InterviewsHubPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab && FILTERS.some((f) => f.id === tab)) setFilter(tab);
+  }, []);
 
   const filtered = items.filter((i) => {
     if (filter === "todas") return true;

@@ -2056,6 +2056,33 @@ html[data-theme="dark"] .app-nav__link--active {
   color: var(--primary);
 }
 
+.app-nav__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-nav__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 4px 29px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.app-nav__sublink {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.app-nav__sublink:hover {
+  background: var(--surface-2);
+  color: var(--primary-strong);
+}
+
 .app-sidebar__foot {
   margin-top: auto;
   padding: 12px 8px 4px;
