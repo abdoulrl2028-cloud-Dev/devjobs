@@ -24,7 +24,13 @@ function getSqlite(): DatabaseSync {
 
 function getPg(): Pool {
   if (!pgPool) {
-    pgPool = new Pool({ connectionString: DATABASE_URL!, max: 5 });
+    pgPool = new Pool({
+      connectionString: DATABASE_URL!,
+      max: 5,
+      // Em serverless, falha rápido em vez de pendurar até o limite da função.
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
+    });
   }
   return pgPool;
 }
