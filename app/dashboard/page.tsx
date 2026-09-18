@@ -185,6 +185,9 @@ export default function DashboardPage() {
             <Link href="/publicar-vaga" className="btn btn--primary">
               + Publicar vaga
             </Link>
+            <Link href="/dashboard/entrevistas" className="btn btn--ghost">
+              Entrevistas
+            </Link>
             <Link href="/planos" className="btn btn--ghost">
               Planos
             </Link>

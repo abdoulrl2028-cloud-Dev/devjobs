@@ -51,6 +51,11 @@ export async function PUT(request: NextRequest) {
   const summary = typeof body.summary === "string" ? body.summary.trim().slice(0, 2000) : null;
   const experience = ["0-1", "1-3", "3-5", "5+"].includes(String(body.experience)) ? String(body.experience) : "0-1";
   const location = typeof body.location === "string" ? body.location.trim().slice(0, 120) || null : null;
+  const city = typeof body.city === "string" ? body.city.trim().slice(0, 80) || null : null;
+  const state = typeof body.state === "string" ? body.state.trim().slice(0, 80) || null : null;
+  const country = typeof body.country === "string" ? body.country.trim().slice(0, 80) || null : null;
+  const education = typeof body.education === "string" ? body.education.trim().slice(0, 240) || null : null;
+  const photoUrl = asUrl(body.photoUrl);
   const availableRemote = body.availableRemote === true;
   const skills = Array.isArray(body.skills)
     ? (body.skills as string[]).filter((s): s is string => typeof s === "string").map((s) => s.trim().slice(0, 40)).slice(0, 20)
@@ -65,6 +70,11 @@ export async function PUT(request: NextRequest) {
     summary,
     experience,
     location,
+    city,
+    state,
+    country,
+    education,
+    photoUrl,
     availableRemote,
     skills,
     githubUrl: asUrl(body.githubUrl),

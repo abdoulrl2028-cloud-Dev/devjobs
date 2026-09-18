@@ -203,6 +203,10 @@ export type CandidateProfile = {
   resumeUrl: string | null;
   experience: string; // 0-1 | 1-3 | 3-5 | 5+ anos
   location: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  education: string | null;
   availableRemote: boolean;
   skills: string[];
   createdAt: string;
@@ -355,7 +359,7 @@ export type Alert = {
 export type AppNotification = {
   id: string;
   userId: string;
-  type: "info" | "success" | "warning" | "new_job" | "application" | "offer";
+  type: "info" | "success" | "warning" | "new_job" | "application" | "offer" | "interview";
   title: string;
   body: string | null;
   jobId: string | null;
@@ -379,6 +383,48 @@ export type Interview = {
     problemSolving: number;
   };
   status: "in_progress" | "completed";
+  createdAt: string;
+  type?: InterviewType;
+  companyId?: string | null;
+  candidateId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  scheduledAt?: string | null;
+  durationMinutes?: number | null;
+  meetingUrl?: string | null;
+  interviewerName?: string | null;
+  updatedAt?: string | null;
+};
+
+export type InterviewType = "technical" | "practical" | "theoretical" | "ai" | "company_online";
+
+export type InterviewScheduleStatus =
+  | "scheduled"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
+export type InterviewPlanQuestion = {
+  index: number;
+  question: string;
+  question_type: string;
+  expected_topics: string[];
+};
+
+export type InterviewResult = {
+  id: string;
+  interviewId: string;
+  candidateId: string;
+  technicalScore: number | null;
+  practicalScore: number | null;
+  theoreticalScore: number | null;
+  communicationScore: number | null;
+  overallScore: number | null;
+  strengths: string[];
+  improvements: string[];
+  studyTopics: string[];
   createdAt: string;
 };
 

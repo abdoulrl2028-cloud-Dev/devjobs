@@ -128,7 +128,7 @@ export default function AppDashboard() {
             {data?.stats.profileCompleteness ?? 0}% completo
           </p>
           <div className="app-card__actions">
-            <Link href="/app/perfil" className="btn btn--ghost btn--sm">
+            <Link href="/profile" className="btn btn--ghost btn--sm">
               Editar perfil
             </Link>
             <Link href="/app/curriculos" className="btn btn--ghost btn--sm">

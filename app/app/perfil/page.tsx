@@ -2,6 +2,6 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default function PerfilRedirectPage() {
+export default function AppPerfilRedirectPage() {
   redirect("/profile");
 }

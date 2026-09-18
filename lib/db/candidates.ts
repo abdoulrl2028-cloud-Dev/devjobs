@@ -35,6 +35,10 @@ function toProfile(row: Record<string, unknown>, skills: string[] = []): Candida
     resumeUrl: (row.resume_url as string | null) ?? null,
     experience: String(row.experience),
     location: (row.location as string | null) ?? null,
+    city: (row.city as string | null) ?? null,
+    state: (row.state as string | null) ?? null,
+    country: (row.country as string | null) ?? null,
+    education: (row.education as string | null) ?? null,
     availableRemote: Boolean(row.available_remote),
     skills,
     createdAt: String(row.created_at),
@@ -69,6 +73,10 @@ export async function upsertProfile(data: {
   resumeUrl?: string | null;
   experience: string;
   location?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  education?: string | null;
   availableRemote: boolean;
   skills: string[];
 }): Promise<CandidateProfile> {
@@ -82,6 +90,7 @@ export async function upsertProfile(data: {
         `UPDATE candidate_profiles SET
           full_name = ?, headline = ?, summary = ?, photo_url = ?, github_url = ?,
           linkedin_url = ?, resume_url = ?, experience = ?, location = ?,
+          city = ?, state = ?, country = ?, education = ?,
           available_remote = ?, updated_at = ?
          WHERE id = ?`,
         [
@@ -94,6 +103,10 @@ export async function upsertProfile(data: {
           data.resumeUrl ?? null,
           data.experience,
           data.location ?? null,
+          data.city ?? null,
+          data.state ?? null,
+          data.country ?? null,
+          data.education ?? null,
           data.availableRemote ? 1 : 0,
           now,
           id,
@@ -103,8 +116,9 @@ export async function upsertProfile(data: {
       await tx.execute(
         `INSERT INTO candidate_profiles (
           id, user_id, full_name, headline, summary, photo_url, github_url,
-          linkedin_url, resume_url, experience, location, available_remote, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          linkedin_url, resume_url, experience, location, city, state, country,
+          education, available_remote, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           data.userId,
@@ -117,6 +131,10 @@ export async function upsertProfile(data: {
           data.resumeUrl ?? null,
           data.experience,
           data.location ?? null,
+          data.city ?? null,
+          data.state ?? null,
+          data.country ?? null,
+          data.education ?? null,
           data.availableRemote ? 1 : 0,
           now,
           now,

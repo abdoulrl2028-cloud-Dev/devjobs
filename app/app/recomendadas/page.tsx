@@ -91,7 +91,7 @@ export default function RecomendadasPage() {
           {data?.profile == null && (
             <div className="app-note">
               Complete seu perfil para receber recomendações mais precisas.{" "}
-              <Link href="/app/perfil">Editar perfil →</Link>
+              <Link href="/profile">Editar perfil →</Link>
             </div>
           )}
 

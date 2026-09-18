@@ -607,6 +607,16 @@ function toInterview(row: Record<string, unknown>): Interview {
     metrics,
     status: row.status === "in_progress" ? "in_progress" : "completed",
     createdAt: String(row.created_at),
+    type: (row.type as Interview["type"]) ?? "ai",
+    companyId: row.company_id ? String(row.company_id) : null,
+    candidateId: row.candidate_id ? String(row.candidate_id) : null,
+    title: row.title ? String(row.title) : null,
+    description: row.description ? String(row.description) : null,
+    scheduledAt: row.scheduled_at ? String(row.scheduled_at) : null,
+    durationMinutes: row.duration_minutes !== null && row.duration_minutes !== undefined ? Number(row.duration_minutes) : null,
+    meetingUrl: row.meeting_url ? String(row.meeting_url) : null,
+    interviewerName: row.interviewer_name ? String(row.interviewer_name) : null,
+    updatedAt: row.updated_at ? String(row.updated_at) : null,
   };
 }
 

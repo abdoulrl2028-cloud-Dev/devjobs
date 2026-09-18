@@ -153,6 +153,9 @@ export default function JobApplicationsPage() {
             )}
           </p>
           <Link href="/dashboard" className="btn btn--ghost btn--sm">← Painel</Link>
+          <Link href="/dashboard/entrevistas" className="btn btn--ghost btn--sm" style={{ marginLeft: 8 }}>
+            Entrevistas
+          </Link>
         </div>
       </div>
 

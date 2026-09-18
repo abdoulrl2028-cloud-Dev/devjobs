@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/login",
         "/cadastro",
-        "/perfil",
+        "/profile",
         "/dashboard",
         "/favoritos",
         "/admin",

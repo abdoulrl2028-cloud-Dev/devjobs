@@ -238,6 +238,45 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
 );
 CREATE INDEX IF NOT EXISTS idx_ai_analyses_user ON ai_analyses(user_id);
 
+CREATE TABLE IF NOT EXISTS interview_questions (
+  id TEXT PRIMARY KEY,
+  interview_id TEXT NOT NULL REFERENCES interviews(id),
+  question TEXT NOT NULL,
+  question_type TEXT NOT NULL,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interview_questions_interview ON interview_questions(interview_id);
+
+CREATE TABLE IF NOT EXISTS interview_answers (
+  id TEXT PRIMARY KEY,
+  interview_id TEXT NOT NULL REFERENCES interviews(id),
+  question_id TEXT REFERENCES interview_questions(id),
+  candidate_id TEXT NOT NULL REFERENCES users(id),
+  answer_text TEXT,
+  answer_audio_url TEXT,
+  score INTEGER,
+  feedback TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interview_answers_interview ON interview_answers(interview_id);
+
+CREATE TABLE IF NOT EXISTS interview_results (
+  id TEXT PRIMARY KEY,
+  interview_id TEXT NOT NULL REFERENCES interviews(id),
+  candidate_id TEXT NOT NULL REFERENCES users(id),
+  technical_score INTEGER,
+  practical_score INTEGER,
+  theoretical_score INTEGER,
+  communication_score INTEGER,
+  overall_score INTEGER,
+  strengths TEXT NOT NULL DEFAULT '[]',
+  improvements TEXT NOT NULL DEFAULT '[]',
+  study_topics TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interview_results_interview ON interview_results(interview_id);
+
 CREATE TABLE IF NOT EXISTS realtime_events (
   id TEXT PRIMARY KEY,
   user_id TEXT,

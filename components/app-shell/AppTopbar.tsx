@@ -180,7 +180,7 @@ export default function AppTopbar() {
           type="button"
           className="app-avatar"
           title={user.name}
-          onClick={() => router.push("/app/perfil")}
+          onClick={() => router.push("/profile")}
         >
           {user.name
             .split(" ")

@@ -121,6 +121,48 @@ async function applyIncrementalMigrations(): Promise<void> {
         }
       }
     },
+    // candidate_profiles: perfil do candidato (cidade, estado, país e formação)
+    async () => {
+      const columns = [
+        "city TEXT",
+        "state TEXT",
+        "country TEXT",
+        "education TEXT",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE candidate_profiles ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+      await execute("CREATE INDEX IF NOT EXISTS idx_candidates_city ON candidate_profiles(city)");
+    },
+    // interviews: sistema completo de entrevistas (agendamento pela empresa,
+    // entrevistas técnicas/práticas/teóricas/com IA e online da empresa).
+    async () => {
+      const columns = [
+        "type TEXT DEFAULT 'ai'",
+        "company_id TEXT",
+        "candidate_id TEXT",
+        "title TEXT",
+        "description TEXT",
+        "scheduled_at TEXT",
+        "duration_minutes INTEGER",
+        "meeting_url TEXT",
+        "interviewer_name TEXT",
+        "updated_at TEXT",
+      ];
+      for (const column of columns) {
+        try {
+          await execute(`ALTER TABLE interviews ADD COLUMN ${column}`);
+        } catch {
+          // Coluna já existente.
+        }
+      }
+      await execute("CREATE INDEX IF NOT EXISTS idx_interviews_company ON interviews(company_id)");
+      await execute("CREATE INDEX IF NOT EXISTS idx_interviews_candidate ON interviews(candidate_id)");
+    },
   ];
   for (const migration of migrations) {
     await migration();
