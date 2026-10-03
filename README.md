@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/abdoulrl2028-cloud-Dev/abdoulrl2028-cloud-Dev/main/assets/projects/jobs.jpg" alt="DevJobs" width="100%">
+</p>
+
 # DevJobs
 
 Plataforma pública de vagas de tecnologia para pessoas desenvolvedoras. Frontend em **Next.js + TypeScript**, back-end em **API REST** (rotas de API do Next.js) e layout 100% **responsivo** com **dark mode**.
