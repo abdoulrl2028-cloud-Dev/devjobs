@@ -4,97 +4,98 @@
 
 # DevJobs
 
-Plataforma pública de vagas de tecnologia para pessoas desenvolvedoras. Frontend em **Next.js + TypeScript**, back-end em **API REST** (rotas de API do Next.js) e layout 100% **responsivo** com **dark mode**.
+Public tech job board. The frontend uses **Next.js and TypeScript**, the backend is a **REST API** (Next.js route handlers), and the layout is fully responsive with **dark mode**.
 
-## Funcionalidades
+**Live site:** [https://devjobs-peach-six.vercel.app](https://devjobs-peach-six.vercel.app)
 
-- 🔎 Lista de vagas com busca por cargo, empresa ou skill
-- 📍 Filtro por localização, tipo de vaga, vagas remotas e patrocinadas
-- 📄 Página de detalhes com requisitos, responsabilidades e benefícios + contagem de visualizações
-- ❤️ Favoritar vagas (com sincronização no banco para usuários logados)
-- 🔐 Login com sessão por cookie assinado e cadastro (candidato ou empresa)
-- 💼 **Portal da empresa**: publicar vagas, planos de destaque, pagamentos (Stripe ou modo demo), métricas e candidaturas
-- 🧠 **Banco de talentos** (planos Pro/Empresa) e perfil público de candidatos
-- 🛡️ **Painel administrativo**: moderação de vagas, usuários, empresas e receita
-- 🌙 Dark mode com detecção automática do sistema
-- 📱 Layout responsivo: celular, tablet e desktop
+## Features
 
-## Planos
+- Job list with search by role, company, or skill
+- Filters for location, job type, remote jobs, and sponsored jobs
+- Detail page with requirements, responsibilities, benefits, and a view count
+- Saved jobs, synced to the database for signed-in users
+- Cookie session login and sign-up for candidates or companies
+- **Company portal:** publish jobs, featured plans, payments (Stripe or demo mode), metrics, and applications
+- **Talent pool** (Pro and Company plans) and public candidate profiles
+- **Admin panel:** moderate jobs, users, companies, and revenue
+- Dark mode that follows the system
+- Phone, tablet, and desktop layouts
 
-| Plano     | Preço    | Vagas | Validade | Recursos |
-| --------- | -------- | ----- | -------- | -------- |
-| Grátis    | R$ 0     | 1     | 15 dias  | Vaga simples |
-| Destaque  | R$ 49    | 1     | 30 dias  | Badge de destaque |
-| Pro       | R$ 149   | 5     | 30 dias  | + Banco de talentos |
-| Empresa   | R$ 299/mês | Ilimitadas | Mensal | Tudo + suporte prioritário |
+## Plans
 
-## Tecnologias
+| Plan | Price | Jobs | Duration | Includes |
+| --- | --- | --- | --- | --- |
+| Free | R$ 0 | 1 | 15 days | Basic listing |
+| Featured | R$ 49 | 1 | 30 days | Featured badge |
+| Pro | R$ 149 | 5 | 30 days | Talent pool |
+| Company | R$ 299/month | Unlimited | Monthly | Everything, plus priority support |
+
+## Technologies
 
 - [Next.js](https://nextjs.org) (App Router)
 - [TypeScript](https://www.typescriptlang.org)
-- API REST (`app/api/*`)
-- Banco de dados portável: **SQLite** (`node:sqlite`) no dev, **Postgres** em produção
-- [Stripe](https://stripe.com) para pagamentos (com modo de demonstração)
-- CSS com variáveis (temas claro/escuro) responsivo
+- REST API (`app/api/*`)
+- Portable database: **SQLite** (`node:sqlite`) in development, **Postgres** in production
+- [Stripe](https://stripe.com) for payments, with a demo mode
+- Responsive CSS variables for light and dark themes
 
-## Rodando localmente
+## Run locally
 
-Requer **Node.js 22+**.
+Requires **Node.js 22+**. The dev server stays on your computer. It is not a public link.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Acesse http://localhost:3000.
+Without `DATABASE_URL`, the app uses SQLite (`./data/devjobs.db`). The database, migrations, and seed data are created on the first run.
 
-Sem `DATABASE_URL`, o app usa SQLite (`./data/devjobs.db`), criado e popularizado automaticamente na primeira execução (migrações + seed).
+### Payments
 
-### Pagamentos
+Without a Stripe key, checkout runs in **demo mode** and is approved immediately. For the real flow, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `.env.local`. See `.env.example`.
 
-Sem chave do Stripe, os pagamentos rodam em **modo demo**: o checkout é "aprovado" imediatamente. Para testar o fluxo real, defina `STRIPE_SECRET_KEY` (e `STRIPE_WEBHOOK_SECRET` para receber webhooks) no `.env.local`. Veja `.env.example`.
+### Demo accounts (created by the seed)
 
-### Contas demo (criadas pelo seed)
+- `demo@devjobs.com` / `talento123` — candidate
+- `empresa@devjobs.com` / `empresa123` — company (StartupX, Company plan)
+- `admin@devjobs.com` / `admin123` — administrator
+- Talent pool: `talento1@devjobs.com` through `talento7@devjobs.com` / `talento123`
 
-- `demo@devjobs.com` / `talento123` — candidata (Ana Souza)
-- `empresa@devjobs.com` / `empresa123` — empresa (StartupX, plano Empresa)
-- `admin@devjobs.com` / `admin123` — administrador
-- Banco de talentos: `talento1@devjobs.com` … `talento7@devjobs.com` / `talento123`
+## REST API
 
-## API REST
+| Method | Route | Description |
+| --- | --- | --- |
+| GET | `/api/jobs` | List jobs (`q`, `location`, `type`, `remote`) |
+| GET | `/api/jobs/:id` | Job details |
+| GET | `/api/jobs/sponsored` | Sponsored jobs |
+| GET | `/api/locations` | Available locations |
+| POST | `/api/auth/login` | Log in (email and password) |
+| POST | `/api/auth/logout` | End the session |
+| GET | `/api/auth/me` | Current user (session cookie) |
+| POST | `/api/register` | Register a candidate or a company |
+| POST | `/api/jobs/:id/apply` | Apply to a job |
+| GET/POST/DELETE | `/api/favorites` | Saved jobs for the signed-in user |
+| GET/POST | `/api/company/jobs` | Company jobs and publishing |
+| GET | `/api/company/stats` | Company metrics and payments |
+| GET | `/api/talents` | Talent pool (Pro/Company) |
+| GET | `/api/admin/summary` | Revenue and metrics (admin) |
 
-| Método | Rota                      | Descrição                              |
-| ------ | ------------------------- | -------------------------------------- |
-| GET    | `/api/jobs`               | Lista vagas (`q`, `location`, `type`, `remote`) |
-| GET    | `/api/jobs/:id`           | Detalhes de uma vaga                   |
-| GET    | `/api/jobs/sponsored`     | Vagas patrocinadas                     |
-| GET    | `/api/locations`          | Localizações disponíveis               |
-| POST   | `/api/auth/login`         | Login (e-mail + senha)                 |
-| POST   | `/api/auth/logout`        | Encerra a sessão                        |
-| GET    | `/api/auth/me`            | Usuário logado (cookie de sessão)      |
-| POST   | `/api/register`           | Cadastro de candidato ou empresa       |
-| POST   | `/api/jobs/:id/apply`     | Candidatar-se a uma vaga (candidato)   |
-| GET/POST/DELETE | `/api/favorites`  | Favoritos do usuário logado           |
-| GET/POST | `/api/company/jobs`     | Vagas da empresa + publicar vaga        |
-| GET    | `/api/company/stats`      | Métricas e pagamentos da empresa        |
-| GET    | `/api/talents`            | Banco de talentos (Pro/Empresa)        |
-| GET    | `/api/admin/summary`      | Resumo de receita e métricas (admin)   |
+## Security
 
-## Segurança
-
-- **Headers** de segurança em todas as respostas: CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `HSTS` e `Permissions-Policy`.
-- **Rate limiting** por IP na API (Vercel + fallback em memória): `POST /api/auth/login` e `/api/register` (5/min), demais rotas `auth` (30/min) e API geral (120/min).
-- **Senhas** com hash `scrypt` + comparação em tempo constante (`timingSafeEqual`).
-- **CSRF**: verificações de `Origin`/`Referer` em `login` e `logout`.
-- **Validação de entrada**: formato de e-mail, tamanho de senha, limite de corpo de requisição e parâmetros de consulta com lista de valores permitidos.
-- **Cookies de sessão** `httpOnly` + `SameSite=Lax` + `Secure` em produção; atraso constante no login para dificultar brute-force.
-- **Autorização**: rotas de empresa, admin e talentos exigem sessão e papel (role) adequados.
+- Security headers on every response: CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `HSTS`, and `Permissions-Policy`.
+- Per-IP rate limits: login and register (5/min), other auth routes (30/min), and the general API (120/min).
+- Passwords hashed with `scrypt` and compared in constant time.
+- `Origin` and `Referer` checks on login and logout.
+- Input checks for email format, password length, body size, and allowed query values.
+- Session cookies are `httpOnly`, `SameSite=Lax`, and `Secure` in production.
+- Company, admin, and talent routes require a session and the right role.
 
 ## Deploy
 
-O projeto está publicado na Vercel. Deploy manual: `vercel --prod --yes`.
+The project is published on Vercel: [https://devjobs-peach-six.vercel.app](https://devjobs-peach-six.vercel.app). Manual deploy: `vercel --prod --yes`.
 
-Em produção, configure:
-- `AUTH_SECRET` (obrigatório)
-- `DATABASE_URL` (Postgres — SQLite não é persistente em serverless)
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` (quando ativar cobrança real)
+In production, set:
+
+- `AUTH_SECRET` (required)
+- `DATABASE_URL` (Postgres — SQLite is not persistent on serverless)
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` when real charges are enabled
